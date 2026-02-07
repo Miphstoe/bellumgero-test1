@@ -208,6 +208,8 @@ ComponentManager::ComponentManager() {
 	components.put("InsuranceTerminalMenuComponent", new InsuranceTerminalMenuComponent());
 	components.put("BankTerminalMenuComponent", new BankTerminalMenuComponent());
 	components.put("CloningTerminalMenuComponent", new CloningTerminalMenuComponent());
+	components.put("ImageDesignTerminalMenuComponent", new ImageDesignTerminalMenuComponent());
+
 
 	components.put("ArtCrateMenuComponent", new ArtCrateMenuComponent());
 
