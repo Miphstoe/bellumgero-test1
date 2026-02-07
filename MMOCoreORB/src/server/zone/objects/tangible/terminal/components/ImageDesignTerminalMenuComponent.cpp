@@ -1,41 +1,39 @@
-/*
- * ImageDesignTerminalMenuComponent.cpp
- *
- * Minimal + safe radial build to avoid client "spinning" when the server
- * fails to send ObjectMenuResponse (usually due to a crash/null deref).
- */
-
 #include "ImageDesignTerminalMenuComponent.h"
-
 #include "server/zone/objects/scene/SceneObject.h"
-#include "server/zone/packets/object/ObjectMenuResponse.h"
 #include "server/zone/objects/creature/CreatureObject.h"
+#include "server/zone/packets/object/ObjectMenuResponse.h"
 
 void ImageDesignTerminalMenuComponent::fillObjectMenuResponse(SceneObject* sceneObject, ObjectMenuResponse* menuResponse, CreatureObject* player) const {
-	if (sceneObject == nullptr || menuResponse == nullptr || player == nullptr)
+	// IMPORTANT: do NOT lock here. The radial manager already has the correct locks.
+	TangibleObjectMenuComponent::fillObjectMenuResponse(sceneObject, menuResponse, player);
+
+	if (player == nullptr || sceneObject == nullptr)
 		return;
 
-	// IMPORTANT: add our items first, then call base (matches several stable forks)
-	menuResponse->addRadialMenuItemToRadialID(20, 80, 3, "Register Terminal");
-	menuResponse->addRadialMenuItemToRadialID(20, 81, 3, "Use Image Design (10,000 cr)");
-
-	TangibleObjectMenuComponent::fillObjectMenuResponse(sceneObject, menuResponse, player);
+	// Basic proof-of-life entries
+	menuResponse->addRadialMenuItem(200, 3, "Use Image Design");
+	menuResponse->addRadialMenuItem(201, 3, "Set Price");
+	menuResponse->addRadialMenuItem(202, 3, "Pack Up");
 }
 
 int ImageDesignTerminalMenuComponent::handleObjectMenuSelect(SceneObject* sceneObject, CreatureObject* player, byte selectedID) const {
-	if (sceneObject == nullptr || player == nullptr)
+	// IMPORTANT: do NOT lock here either (unless you really know what you're doing).
+	if (player == nullptr || sceneObject == nullptr)
 		return 0;
 
-	if (selectedID == 80) {
-		player->sendSystemMessage("Register clicked (debug).");
-		return 0;
+	switch (selectedID) {
+	case 200:
+		player->sendSystemMessage("Use Image Design (stub)");
+		break;
+	case 201:
+		player->sendSystemMessage("Set Price (stub)");
+		break;
+	case 202:
+		player->sendSystemMessage("Pack Up (stub)");
+		break;
+	default:
+		break;
 	}
 
-	if (selectedID == 81) {
-		player->sendSystemMessage("Use clicked (debug).");
-		return 0;
-	}
-
-	return TangibleObjectMenuComponent::handleObjectMenuSelect(sceneObject, player, selectedID);
+	return 0;
 }
-
