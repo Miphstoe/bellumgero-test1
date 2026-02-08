@@ -19,6 +19,12 @@
 
 #include "server/zone/objects/building/BuildingObject.h"
 
+// If an Image Design session was started from an offline terminal, the terminal
+// menu component temporarily applies the registered designer's image design
+// skill mods to the interacting player via this buff. We remove it when the
+// session ends to avoid leaving the modifiers behind.
+static constexpr uint32 kImageDesignTerminalBuffCRC = STRING_HASHCODE("imagedesign_terminal_mods");
+
 // ---- Terminal snapshot parsing helpers ----
 static int parseSnapshotValue(const String& snapshot, const String& key) {
 	// snapshot format: "mod=value;mod=value;..."
@@ -119,6 +125,13 @@ int ImageDesignSessionImplementation::getEffectiveSkillMod(const String& modName
 int ImageDesignSessionImplementation::cancelSession() {
 	ManagedReference<CreatureObject*> designerCreature = this->designerCreature.get();
 	ManagedReference<CreatureObject*> targetCreature = this->targetCreature.get();
+
+	// Remove any temporary terminal skill-mod buff so it can't persist after the session ends.
+	if (designerCreature != nullptr)
+		designerCreature->removeBuff(kImageDesignTerminalBuffCRC);
+
+	if (targetCreature != nullptr && targetCreature != designerCreature)
+		targetCreature->removeBuff(kImageDesignTerminalBuffCRC);
 
 	// If we temporarily granted skills for terminal self-service, remove them now.
 	if (isTerminalSession() && designerCreature != nullptr && designerCreature == targetCreature) {

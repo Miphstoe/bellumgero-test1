@@ -8,6 +8,10 @@
 #include "server/zone/objects/scene/SceneObject.h"
 #include "server/zone/objects/player/sessions/ImageDesignSession.h"
 
+// Terminal override support (terminal-only)
+#include "server/zone/objects/tangible/TangibleObject.h"
+#include "server/zone/objects/tangible/terminal/components/ImageDesignTerminalDataComponent.h"
+
 class ImagedesignCommand : public QueueCommand {
 public:
 
@@ -27,22 +31,59 @@ public:
 		if (!creature->isPlayerCreature())
 			return GENERALERROR;
 
+		ManagedReference<CreatureObject*> designer = cast<CreatureObject*>(creature);
+		if (designer == nullptr)
+			return GENERALERROR;
+
+		ManagedReference<SceneObject*> object = server->getZoneServer()->getObject(target);
+
+		// ------------------------------------------------------------
+		// TERMINAL-ONLY OVERRIDE:
+		// If the "target" is a registered Image Design Terminal, bypass
+		// the normal entertainer skill requirement and start a terminal
+		// session (self-service) with fixed price + snapshot limits.
+		// This does NOT affect normal image design.
+		// ------------------------------------------------------------
+		if (object != nullptr && object->isTangibleObject()) {
+			TangibleObject* tano = cast<TangibleObject*>(object.get());
+			if (tano != nullptr) {
+				DataObjectComponentReference* dataRef = tano->getDataObjectComponent();
+				ImageDesignTerminalDataComponent* termData = (dataRef != nullptr)
+					? cast<ImageDesignTerminalDataComponent*>(dataRef->get())
+					: nullptr;
+
+				if (termData != nullptr && termData->isRegistered()) {
+					// Create Session (terminal self-service)
+					ManagedReference<ImageDesignSession*> session = new ImageDesignSession(designer);
+					session->deploy();
+
+					// Mark as terminal session so ImageDesignSessionImplementation can:
+					// - temporarily add required UI skills
+					// - enforce fixed pricing
+					// - use snapshot skill-mod limits
+					session->setTerminalContext(tano->getObjectID(), 10000);
+					session->setTerminalSkillSnapshot(termData->getSnapshotString());
+
+					session->startImageDesign(designer, designer);
+					return SUCCESS;
+				}
+			}
+		}
+
+		// -------------------------
+		// NORMAL IMAGE DESIGN PATH
+		// -------------------------
 		if (!creature->hasSkill("social_entertainer_novice")) {
 			creature->sendSystemMessage("@ui_imagedesigner:noskill"); // You don't have any image designer skills
 			return GENERALERROR;
 		}
 
-		//Disabled again for public use until bugs can be worked out.
-		//return SUCCESS;
-
-		ManagedReference<SceneObject*> object = server->getZoneServer()->getObject(target);
 		CreatureObject* playerTarget = nullptr;
-		CreatureObject* designer = cast<CreatureObject*>( creature);
 
 		if (object == nullptr || !object->isPlayerCreature())
 			playerTarget = designer;
 		else
-			playerTarget = cast<CreatureObject*>( object.get());
+			playerTarget = cast<CreatureObject*>(object.get());
 
 		Locker clocker(playerTarget, creature);
 
@@ -63,38 +104,17 @@ public:
 			stringIdNotGrp.setTT(playerTarget->getObjectID());
 
 			if (!designer->isGrouped() || designer->getGroupID() != playerTarget->getGroupID()) {
-				//You must be within the same group as %TT in order to use your Image Design abilites.
 				designer->sendSystemMessage(stringIdNotGrp);
 				return GENERALERROR;
 			}
 		}
 
-		/*BuildingObject* buildingObj = cast<BuildingObject*>( designer->getParentRecursively(SceneObject::SALONBUILDING));
-
-		if (buildingObj == nullptr) {
-			designer->sendSystemMessage("You must be inside an Image Design tent in order to perform that action.");
-			if(buildingObj != nullptr) {
-				int i = buildingObj->getGameObjectType();
-				System::out << String::valueOf(i) << endl;
-			}
-			return GENERALERROR;
-		}
-
-		buildingObj = cast<BuildingObject*>( playerTarget->getRootParent());
-
-		if (buildingObj == nullptr || buildingObj->getGameObjectType() != BuildingObject::SALONBUILDING) {
-			playerTarget->sendSystemMessage("You must be inside an Image Design tent in order to be Image Designed.");
-			designer->sendSystemMessage("Your current target is not currently inside a valid Image Design tent.");
-			return GENERALERROR;
-		}*/
-
 		if (playerTarget->containsActiveSession(SessionFacadeType::IMAGEDESIGN) && playerTarget != designer) {
 			StringIdChatParameter stringId;
-			stringId.setStringId("@image_designer:outstanding_offer"); //%TT already has an outstanding Image Design offer.
+			stringId.setStringId("@image_designer:outstanding_offer");
 			stringId.setTT(playerTarget->getObjectID());
 
 			designer->sendSystemMessage(stringId);
-
 			return GENERALERROR;
 		}
 
