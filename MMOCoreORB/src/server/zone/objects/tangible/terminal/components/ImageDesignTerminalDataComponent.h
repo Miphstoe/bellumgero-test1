@@ -3,8 +3,8 @@
  *
  * Offline Image Design Terminal persistent data:
  * - ownerId / ownerName
+ * - price (credits)
  * - snapshot of designer skill mods used by customization_data.iff + "hair"
- *
  */
 
 #ifndef IMAGEDESIGNTERMINALDATACOMPONENT_H_
@@ -17,6 +17,10 @@ class ImageDesignTerminalDataComponent : public DataObjectComponent {
 protected:
 	uint64 ownerId;
 	SerializableString ownerName;
+
+	// Price in credits for using terminal (paid by user). 0 = free.
+	uint32 price;
+
 	SerializableString skillModsSnapshot; // "mod=value;mod=value;..."
 
 	// transient cache (not serialized)
@@ -27,6 +31,7 @@ public:
 	ImageDesignTerminalDataComponent() {
 		ownerId = 0;
 		ownerName = "";
+		price = 0;
 		skillModsSnapshot = "";
 		parsedSnapshot = false;
 
@@ -52,6 +57,14 @@ public:
 		return ownerId != 0;
 	}
 
+	uint32 getPrice() const {
+		return price;
+	}
+
+	void setPrice(uint32 newPrice) {
+		price = newPrice;
+	}
+
 	/**
 	 * Registers an owner and snapshots their Image Design skill mods.
 	 * Call while parent + owner are locked.
@@ -74,6 +87,7 @@ public:
 		DataObjectComponent::writeJSON(j);
 		SERIALIZE_JSON_MEMBER(ownerId);
 		SERIALIZE_JSON_MEMBER(ownerName);
+		SERIALIZE_JSON_MEMBER(price);
 		SERIALIZE_JSON_MEMBER(skillModsSnapshot);
 	}
 
@@ -81,6 +95,7 @@ private:
 	void addSerializableVariables() {
 		addSerializableVariable("ownerId", &ownerId);
 		addSerializableVariable("ownerName", &ownerName);
+		addSerializableVariable("price", &price);
 		addSerializableVariable("skillModsSnapshot", &skillModsSnapshot);
 	}
 

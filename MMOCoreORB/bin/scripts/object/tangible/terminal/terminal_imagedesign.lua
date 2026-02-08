@@ -2,7 +2,8 @@
 
 object_tangible_terminal_terminal_imagedesign = object_tangible_terminal_shared_terminal_imagedesign:new {
 	objectMenuComponent = "ImageDesignTerminalMenuComponent",
-    dataObjectComponent = "ImageDesignTerminalDataComponent",
+	dataObjectComponent = "ImageDesignTerminalDataComponent",
+
 	planetMapCategory = "terminal",
 	maxCondition = 0,
 	planetMapSubCategory = "terminal_imagedesign"

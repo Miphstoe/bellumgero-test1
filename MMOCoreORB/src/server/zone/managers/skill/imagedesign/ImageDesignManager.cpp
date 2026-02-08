@@ -12,7 +12,25 @@
 #include "templates/customization/AssetCustomizationManagerTemplate.h"
 #include "templates/customization/BasicRangedIntCustomizationVariable.h"
 
+// NEW: terminal-effective mod support
+#include "server/zone/objects/player/sessions/ImageDesignSession.h"
+
 // #define DEBUG_ID
+
+static int getEffectiveImageDesignSkillMod(CreatureObject* imageDesigner, const String& skillMod) {
+	if (imageDesigner == nullptr)
+		return 0;
+
+	ManagedReference<Facade*> facade = imageDesigner->getActiveSession(SessionFacadeType::IMAGEDESIGN);
+	ImageDesignSession* session = dynamic_cast<ImageDesignSession*>(facade.get());
+
+	// If this session was started from a terminal, enforce the terminal snapshot skill mods.
+	if (session != nullptr && session->isTerminalSession()) {
+		return session->getEffectiveSkillMod(skillMod);
+	}
+
+	return imageDesigner->getSkillMod(skillMod);
+}
 
 ImageDesignManager::ImageDesignManager() {
 	setLoggingName("ImageDesignManager");
@@ -35,10 +53,11 @@ void ImageDesignManager::updateCustomization(CreatureObject* imageDesigner, Cust
 	String skillMod = customData->getImageDesignSkillMod();
 
 #ifdef DEBUG_ID
-	info(true) << "updateCustomization - Type: " << type << " Skill Mod = " << skillMod << "  Value: " << imageDesigner->getSkillMod(skillMod);
+	info(true) << "updateCustomization - Type: " << type << " Skill Mod = " << skillMod << "  Value: " << getEffectiveImageDesignSkillMod(imageDesigner, skillMod);
 #endif
 
-	if (imageDesigner->getSkillMod(skillMod) < customData->getSkillModValue())
+	// CHANGED: enforce terminal snapshot skill mod when in terminal session
+	if (getEffectiveImageDesignSkillMod(imageDesigner, skillMod) < customData->getSkillModValue())
 		return;
 
 	if (customData->getIsScale()) {
@@ -187,10 +206,10 @@ void ImageDesignManager::updateColorVariable(const Vector<String>& fullVariables
 					int min = ranged->getMinValueInclusive();
 					int max = ranged->getMaxValueExclusive();
 
-					if (value < min)
+					if (value < (uint32)min)
 						currentVal = min;
 
-					if (value >= max)
+					if (value >= (uint32)max)
 						currentVal = max - 1;
 				} else {
 					palette = dynamic_cast<PaletteColorCustomizationVariable*>(variableLimits.elementAt(j).getValue().get());
@@ -224,10 +243,11 @@ void ImageDesignManager::updateColorCustomization(CreatureObject* imageDesigner,
 	String skillMod = customData->getImageDesignSkillMod();
 
 #ifdef DEBUG_ID
-	info(true) << "updateColorCustomization - Color Value: " << value << " Skill Mod = " << skillMod << "  Value: " << imageDesigner->getSkillMod(skillMod);
+	info(true) << "updateColorCustomization - Color Value: " << value << " Skill Mod = " << skillMod << "  Value: " << getEffectiveImageDesignSkillMod(imageDesigner, skillMod);
 #endif
 
-	if (imageDesigner->getSkillMod(skillMod) < customData->getSkillModValue())
+	// CHANGED: enforce terminal snapshot skill mod when in terminal session
+	if (getEffectiveImageDesignSkillMod(imageDesigner, skillMod) < customData->getSkillModValue())
 		return;
 
 	String variables = customData->getVariables();
@@ -421,7 +441,8 @@ TangibleObject* ImageDesignManager::createHairObject(CreatureObject* imageDesign
 
 	int skillMod = hairAssetData->getSkillModValue();
 
-	if (imageDesigner->getSkillMod("hair") < skillMod)
+	// CHANGED: enforce terminal snapshot hair skill mod when in terminal session
+	if (getEffectiveImageDesignSkillMod(imageDesigner, "hair") < skillMod)
 		return oldHair;
 
 	if (hairAssetData->getServerPlayerTemplate() != targetObject->getObjectTemplate()->getFullTemplateString()) {
@@ -500,54 +521,6 @@ bool ImageDesignManager::validatePalette(PaletteColorCustomizationVariable* pale
 		instance()->info(true) << "palette name = " << paletteName;
 #endif
 
-		/*
-		PaletteData* data = CustomizationIdManager::instance()->getPaletteData(paletteName);
-
-		if (data == nullptr) {
-			//instance()->error() << "PaletteData is a nullptr for " << paletteName;
-		} else {
-			// We do not need to check this. The UI for Image design restricts the colors available to the player based on their skill level.
-			// All of this is handles by the client. - Hakry
-
-
-			int maxIndex;
-
-			switch (skillLevel) {
-			case -1:
-				maxIndex = data->getCreationIndexes();
-				break;
-			case 0:
-				maxIndex = data->getIdNoviceIndexes();
-				break;
-			case 1:
-				maxIndex = data->getIdLevel1Indexes();
-				break;
-			case 2:
-				maxIndex = data->getIdLevel2Indexes();
-				break;
-			case 3:
-				maxIndex = data->getIdLevel3Indexes();
-				break;
-			case 4:
-				maxIndex = data->getIdLevel4Indexes();
-				break;
-			case 5:
-				maxIndex = data->getIdMasterIndexes();
-				break;
-			default:
-				maxIndex = -1;
-				break;
-			}
-
-			if (value >= maxIndex || value < 0) {
-				instance()->error() << "Selected value for " << paletteFileName << " of  " << value << " is beyond the Max Index value of: " << maxIndex;
-
-				return false;
-			} else {
-				Logger::console.info(true) << paletteFileName + " value " << value << " Max index: " << maxIndex;
-			}
-		}*/
-
 #ifdef DEBUG_ID
 		instance()->info(true) << "Validated Palette: " << paletteName << " returning true.";
 #endif
@@ -555,7 +528,6 @@ bool ImageDesignManager::validatePalette(PaletteColorCustomizationVariable* pale
 
 	return true;
 }
-
 
 bool ImageDesignManager::validateCustomizationString(CustomizationVariables* data, const String& appearanceFilename) {
 	VectorMap<String, Reference<CustomizationVariable*> > variables;

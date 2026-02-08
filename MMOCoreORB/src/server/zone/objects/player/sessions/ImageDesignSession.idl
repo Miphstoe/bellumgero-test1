@@ -14,6 +14,7 @@ include server.zone.objects.player.sessions.ImageDesignData;
 import server.zone.objects.player.sessions.ImageDesignPositionObserver;
 import system.thread.ReadWriteLock;
 import system.lang.Time;
+import system.lang.String;
 
 class ImageDesignSession extends Facade {
 	@dereferenced
@@ -37,6 +38,17 @@ class ImageDesignSession extends Facade {
 	@dereferenced
 	protected transient ReadWriteLock idTimeoutLock;
 
+	// --- Terminal offline/self-service context ---
+	protected unsigned long terminalObjectId;
+	protected int terminalPrice;
+
+	@dereferenced
+	protected String terminalSkillModsSnapshot;
+
+	// Terminal UI bootstrap flags (so we can remove temporary skills on cancel/end)
+	protected boolean terminalAddedEntertainerNovice;
+	protected boolean terminalAddedImageDesignerMaster;
+
 	public ImageDesignSession(CreatureObject parent) {
 		Logger.setLoggingName("ImageDesignSession");
 		Logger.setLogging(true);
@@ -46,25 +58,24 @@ class ImageDesignSession extends Facade {
 
 	public native void initializeTransientMembers();
 
-	/**
-	 * Starts an ImageDesign session between the designer and the target player.
-	 * @param designer The image designer.
-	 * @param targetPlayer The recipient of the image designing.
-	 * @param type Unknown type specifier (needs more research)
-	 * @pre designer and targetPlayer are locked
-	 * @post designer and targetPlayer are locked
-	 */
+	@local
+	public native void setTerminalContext(unsigned long terminalId, int price);
+
+	@local
+	public native boolean isTerminalSession();
+
+	@local
+	public native int getTerminalPrice();
+
+	@local
+	public native void setTerminalSkillSnapshot(@dereferenced final String snapshot);
+
+	@local
+	public native int getEffectiveSkillMod(@dereferenced final String modName);
+
 	@local
 	public native void startImageDesign(CreatureObject designer, CreatureObject targetPlayer);
 
-	/**
-	 * When a change is made by the designer, the target's window needs to be notified, and vice versa.
-	 * @param designer The object id of the designer.
-	 * @param targetPlayer The target player's object id.
-	 * @param tent The object id of the salon tent being used.
-	 * @param type The type of something - unknown atm.
-	 * @param data The image design data associated with this update request.
-	 */
 	@local
 	public native void updateImageDesign(CreatureObject updater, unsigned long designer, unsigned long targetPlayer, unsigned long tent, int type, @dereferenced final ImageDesignData data);
 
@@ -76,6 +87,17 @@ class ImageDesignSession extends Facade {
 		targetCreature = null;
 		idTimeoutEvent = null;
 		positionObserver = null;
+
+		terminalObjectId = 0;
+		terminalPrice = 0;
+
+		// IMPORTANT:
+		// Do NOT assign terminalSkillModsSnapshot = "" here.
+		// The IDL codegen can emit invalid C++ for dereferenced String assignment.
+		// It will be set via setTerminalSkillSnapshot() when needed.
+
+		terminalAddedEntertainerNovice = false;
+		terminalAddedImageDesignerMaster = false;
 
 		return 0;
 	}
@@ -100,7 +122,6 @@ class ImageDesignSession extends Facade {
 		synchronized (idTimeoutLock) {
 			if (!idTimeoutEvent) {
 				ImageDesignTimeoutEvent ev = new ImageDesignTimeoutEvent(this);
-
 				idTimeoutEvent = ev;
 			}
 
@@ -112,7 +133,6 @@ class ImageDesignSession extends Facade {
 	public void dequeueIdTimeoutEvent() {
 		synchronized (idTimeoutLock) {
 			if (idTimeoutEvent) {
-
 				if (idTimeoutEvent.isScheduled())
 					idTimeoutEvent.cancel();
 
