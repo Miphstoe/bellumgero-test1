@@ -8,10 +8,6 @@
 #include "server/zone/objects/scene/SceneObject.h"
 #include "server/zone/objects/player/sessions/ImageDesignSession.h"
 
-// Terminal override support (terminal-only)
-#include "server/zone/objects/tangible/TangibleObject.h"
-#include "server/zone/objects/tangible/terminal/components/ImageDesignTerminalDataComponent.h"
-
 class ImagedesignCommand : public QueueCommand {
 public:
 
@@ -35,46 +31,24 @@ public:
 		if (designer == nullptr)
 			return GENERALERROR;
 
-		ManagedReference<SceneObject*> object = server->getZoneServer()->getObject(target);
-
-		// ------------------------------------------------------------
-		// TERMINAL-ONLY OVERRIDE:
-		// If the "target" is a registered Image Design Terminal, bypass
-		// the normal entertainer skill requirement and start a terminal
-		// session (self-service) with fixed price + snapshot limits.
-		// This does NOT affect normal image design.
-		// ------------------------------------------------------------
-		if (object != nullptr && object->isTangibleObject()) {
-			TangibleObject* tano = cast<TangibleObject*>(object.get());
-			if (tano != nullptr) {
-				DataObjectComponentReference* dataRef = tano->getDataObjectComponent();
-				ImageDesignTerminalDataComponent* termData = (dataRef != nullptr)
-					? cast<ImageDesignTerminalDataComponent*>(dataRef->get())
-					: nullptr;
-
-				if (termData != nullptr && termData->isRegistered()) {
-					// Create Session (terminal self-service)
-					ManagedReference<ImageDesignSession*> session = new ImageDesignSession(designer);
-					session->deploy();
-
-					// Mark as terminal session so ImageDesignSessionImplementation can:
-					// - temporarily add required UI skills
-					// - enforce fixed pricing
-					// - use snapshot skill-mod limits
-					session->setTerminalContext(tano->getObjectID(), 10000);
-					session->setTerminalSkillSnapshot(termData->getSnapshotString());
-
-					session->startImageDesign(designer, designer);
-					return SUCCESS;
-				}
-			}
+		// --------------------------------------------------------------------
+		// TERMINAL SAFETY GUARD:
+		// If a terminal menu click already started an Image Design session,
+		// the client may still fire /imagedesign immediately afterward.
+		// In that case, do NOT send noskill or any other error message.
+		// Just return success and let the already-running session continue.
+		// --------------------------------------------------------------------
+		if (designer->containsActiveSession(SessionFacadeType::IMAGEDESIGN)) {
+			return SUCCESS;
 		}
+
+		ManagedReference<SceneObject*> object = server->getZoneServer()->getObject(target);
 
 		// -------------------------
 		// NORMAL IMAGE DESIGN PATH
 		// -------------------------
-		if (!creature->hasSkill("social_entertainer_novice")) {
-			creature->sendSystemMessage("@ui_imagedesigner:noskill"); // You don't have any image designer skills
+		if (!designer->hasSkill("social_entertainer_novice")) {
+			designer->sendSystemMessage("@ui_imagedesigner:noskill"); // You don't have any image designer skills
 			return GENERALERROR;
 		}
 
@@ -126,7 +100,7 @@ public:
 			return GENERALERROR;
 		}
 
-		//Create Session
+		// Create Session
 		session = new ImageDesignSession(designer);
 		session->deploy();
 		session->startImageDesign(designer, playerTarget);
