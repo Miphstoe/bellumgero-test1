@@ -1,9 +1,5 @@
 /*
  * ImageDesignTerminalMenuComponent.h
- *
- * Radial for Image Design Terminal:
- * - Register Terminal (owner only, requires image designer skill line)
- * - Use Image Design (10,000 cr)
  */
 
 #ifndef IMAGEDESIGNTERMINALMENUCOMPONENT_H_

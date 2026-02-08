@@ -3,10 +3,10 @@
  *
  * Offline Image Design Terminal radial.
  *
- * Key points:
- * - Use RadialOptions::SERVER_MENU# for custom actions (safe, like other systems)
- * - For terminal use, mark the ImageDesignSession as a TERMINAL session
- *   via setTerminalContext + setTerminalSkillSnapshot before startImageDesign().
+ * IMPORTANT:
+ * - Use RadialOptions::SERVER_MENU# (safe)
+ * - Mark the ImageDesignSession as TERMINAL before startImageDesign()
+ *   so ImageDesignSessionImplementation’s terminal-only overrides activate.
  */
 
 #include "ImageDesignTerminalMenuComponent.h"
@@ -42,7 +42,6 @@ void ImageDesignTerminalMenuComponent::fillObjectMenuResponse(SceneObject* scene
 	const bool isRegistered = (termData != nullptr && termData->isRegistered());
 	const bool isOwner = (termData != nullptr && termData->getOwnerId() == player->getObjectID());
 
-	// Registration should require actual Image Designer skills (since it snapshots mods).
 	const bool hasAnyImageDesignerSkill =
 		player->hasSkill("social_imagedesigner_novice") || player->hasSkill("social_imagedesigner_master");
 
@@ -55,7 +54,6 @@ void ImageDesignTerminalMenuComponent::fillObjectMenuResponse(SceneObject* scene
 			menuResponse->addRadialMenuItem(RadialOptions::SERVER_MENU1, 3, "Re-Register Terminal");
 		}
 
-		// Use is available to everyone once registered
 		menuResponse->addRadialMenuItem(RadialOptions::SERVER_MENU2, 3, "Use Image Design (10,000 cr)");
 	}
 }
@@ -71,7 +69,7 @@ int ImageDesignTerminalMenuComponent::handleObjectMenuSelect(SceneObject* sceneO
 	DataObjectComponentReference* dataRef = tano->getDataObjectComponent();
 	auto* termData = (dataRef != nullptr) ? cast<ImageDesignTerminalDataComponent*>(dataRef->get()) : nullptr;
 
-	// SERVER_MENU1 = Register / Re-register
+	// Register / Re-register
 	if (selectedID == RadialOptions::SERVER_MENU1) {
 		if (termData == nullptr) {
 			player->sendSystemMessage("This terminal is missing its data component.");
@@ -86,7 +84,6 @@ int ImageDesignTerminalMenuComponent::handleObjectMenuSelect(SceneObject* sceneO
 			return 0;
 		}
 
-		// If already registered, only the owner can re-register.
 		if (termData->isRegistered() && termData->getOwnerId() != player->getObjectID()) {
 			player->sendSystemMessage("Only the terminal owner may re-register this terminal.");
 			return 0;
@@ -98,7 +95,7 @@ int ImageDesignTerminalMenuComponent::handleObjectMenuSelect(SceneObject* sceneO
 		return 0;
 	}
 
-	// SERVER_MENU2 = Use
+	// Use
 	if (selectedID == RadialOptions::SERVER_MENU2) {
 		if (termData == nullptr || !termData->isRegistered()) {
 			player->sendSystemMessage("This terminal has not been registered.");
@@ -110,7 +107,7 @@ int ImageDesignTerminalMenuComponent::handleObjectMenuSelect(SceneObject* sceneO
 			return 0;
 		}
 
-		// Snapshot skill-mods (optional but useful if other code reads getSkillMod())
+		// Optional: apply snapshot skill-mods as a temporary buff
 		player->removeBuff(kTerminalBuffCRC);
 
 		ManagedReference<Buff*> buff = new Buff(player, kTerminalBuffCRC, 300, BuffType::SKILL); // 5 minutes
@@ -119,7 +116,6 @@ int ImageDesignTerminalMenuComponent::handleObjectMenuSelect(SceneObject* sceneO
 
 			String snap = termData->getSnapshotString();
 			int start = 0;
-
 			while (start < snap.length()) {
 				int semi = snap.indexOf(";", start);
 				if (semi < 0)
@@ -133,28 +129,21 @@ int ImageDesignTerminalMenuComponent::handleObjectMenuSelect(SceneObject* sceneO
 						String valStr = pair.subString(eq + 1);
 
 						int val = 0;
-						try {
-							val = Integer::valueOf(valStr);
-						} catch (...) {
-							val = 0;
-						}
+						try { val = Integer::valueOf(valStr); } catch (...) { val = 0; }
 
-						if (!key.isEmpty() && val != 0) {
+						if (!key.isEmpty() && val != 0)
 							buff->setSkillModifier(key, val);
-						}
 					}
 				}
 
 				start = semi + 1;
 			}
 		}
-
 		player->addBuff(buff);
 
-		// ---- CRITICAL FIX ----
-		// Mark the session as a terminal session BEFORE startImageDesign().
-		// Your ImageDesignSessionImplementation.cpp only grants the UI-required skills
-		// when isTerminalSession() == true.
+		// ---- THE ACTUAL FIX ----
+		// Your ImageDesignSessionImplementation only applies the terminal skill override
+		// when isTerminalSession() is true. So we MUST set terminal context first.
 		ManagedReference<ImageDesignSession*> session = new ImageDesignSession(player);
 		session->deploy();
 
