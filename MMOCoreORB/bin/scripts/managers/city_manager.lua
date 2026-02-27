@@ -84,6 +84,7 @@ DecorationsPerRank = 10
 TrainersPerRank = 10
 MissionTerminalsPerRank = 10
 FactionTroopsMax = 25
+FactionTurretsMax = 5
 
 -- Amount to discount city maintenance  float.  1 = 100%, .75 =75%, .5=50% etc
 maintenanceDiscount = 0.5

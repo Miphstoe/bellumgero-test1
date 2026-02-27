@@ -517,6 +517,7 @@
 #include "ReconnectToTransferServerCommand.h"
 #include "RecruitSkillTrainerCommand.h"
 #include "RecruitFactionTroopsCommand.h"
+#include "AddCityDefensesCommand.h"
 #include "RegainConsciousnessCommand.h"
 #include "RegenerationCommand.h"
 #include "RegisterWithLocationCommand.h"

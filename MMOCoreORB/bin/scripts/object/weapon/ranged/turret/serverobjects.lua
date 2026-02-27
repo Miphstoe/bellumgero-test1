@@ -50,3 +50,6 @@ includeFile("weapon/ranged/turret/turret_block_large.lua")
 includeFile("weapon/ranged/turret/turret_block_small.lua")
 includeFile("weapon/ranged/turret/turret_dish_large.lua")
 includeFile("weapon/ranged/turret/turret_tower_large.lua")
+
+-- City defense (new isolated weapon template)
+includeFile("weapon/ranged/turret/city_turret_tower.lua")

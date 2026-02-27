@@ -53,6 +53,7 @@ class CityManager extends ManagedService implements Logger {
 	public transient static int trainersPerRank;
 	public transient static int missionTerminalsPerRank;
 	public transient static int factionTroopsMax;
+	public transient static int factionTurretsMax;
 	public transient static float maintenanceDiscount;
 
 	@dereferenced
@@ -250,6 +251,7 @@ class CityManager extends ManagedService implements Logger {
 	public native boolean canSupportMoreDecorations(CityRegion city);
 	public native boolean canSupportMoreTrainers(CityRegion city);
 	public native boolean canSupportMoreFactionTroops(CityRegion city);
+	public native boolean canSupportMoreFactionTurrets(CityRegion city);
 	public native boolean canSupportMoreMissionTerminals(CityRegion city);
 
 	@local

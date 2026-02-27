@@ -61,6 +61,7 @@ int CityManagerImplementation::decorationsPerRank = 10;
 int CityManagerImplementation::trainersPerRank = 3;
 int CityManagerImplementation::missionTerminalsPerRank = 3;
 int CityManagerImplementation::factionTroopsMax = 25;
+int CityManagerImplementation::factionTurretsMax = 5;
 float CityManagerImplementation::maintenanceDiscount = 1.0f;
 
 void CityManagerImplementation::loadLuaConfig() {
@@ -125,6 +126,9 @@ void CityManagerImplementation::loadLuaConfig() {
 	trainersPerRank = lua->getGlobalInt("TrainersPerRank");
 	missionTerminalsPerRank = lua->getGlobalInt("MissionTerminalsPerRank");
 	factionTroopsMax = lua->getGlobalInt("FactionTroopsMax");
+	factionTurretsMax = lua->getGlobalInt("FactionTurretsMax");
+	if (factionTurretsMax <= 0)
+		factionTurretsMax = 5;
 	if (factionTroopsMax <= 0)
 		factionTroopsMax = 25;
 	maintenanceDiscount = lua->getGlobalFloat("maintenanceDiscount");
@@ -483,6 +487,7 @@ void CityManagerImplementation::sendStatusReport(CityRegion* city, CreatureObjec
 	list->addMenuItem("@city/city:current_trainers " + String::valueOf(city->getSkillTrainerCount())); // Current Trainer Count:
 	list->addMenuItem("@city/city:current_mt " + String::valueOf(city->getMissionTerminalCount())); // Current Terminal Count:
 	list->addMenuItem("Current Faction Troops: " + String::valueOf(city->getFactionTroopCount()) + " / " + String::valueOf(factionTroopsMax));
+	list->addMenuItem("Current City Defense Turrets: " + String::valueOf(city->getFactionTurretCount()) + " / " + String::valueOf(factionTurretsMax));
 
 	for (int i = 0; i < cityTaxes.size(); ++i) {
 		const CityTax* cityTax = getCityTax(i);
@@ -930,6 +935,11 @@ void CityManagerImplementation::deductCityMaintenance(CityRegion* city) {
 		totalPaid += collectNonStructureMaintenance(city->getCityFactionTroop(i), city, thisCost);
 	}
 
+	for(int i = city->getFactionTurretCount() -1; i >=0; i--) {
+		thisCost = rankDiscount * 1500;
+		totalPaid += collectNonStructureMaintenance(city->getCityFactionTurret(i), city, thisCost);
+	}
+
 	if(city->isRegistered()) {
 		thisCost = rankDiscount * 5000;
 
@@ -981,6 +991,8 @@ int CityManagerImplementation::collectNonStructureMaintenance(SceneObject* objec
 		else if (object->isCreatureObject()) {
 			city->removeFactionTroop(object);
 			city->removeSkillTrainers(object);
+		} else if (object->isTurret()) {
+			city->removeFactionTurret(object);
 		}
 
 		sendMaintenanceDestroyEmail(city, object);
@@ -1694,6 +1706,7 @@ void CityManagerImplementation::sendCityAdvancement(CityRegion* city, CreatureOb
 	listbox->addMenuItem("@city/city:max_trainers " + String::valueOf(rank * trainersPerRank)); // Max Skill Trainers:
 	listbox->addMenuItem("@city/city:max_terminals " + String::valueOf(rank * missionTerminalsPerRank)); // Max Mission Terminals:
 	listbox->addMenuItem("Max Faction Troops: " + String::valueOf(factionTroopsMax));
+		listbox->addMenuItem("Max City Defense Turrets: " + String::valueOf(factionTurretsMax));
 
 	listbox->addMenuItem("@city/city:rank_enabled_structures"); // Rank Enabled Structures
 
@@ -2168,6 +2181,17 @@ void CityManagerImplementation::sendMaintenanceReport(CityRegion* city, Creature
 		}
 	}
 
+	maintList->addMenuItem("City Defense Turrets:");
+
+	for (int i = 0; i < city->getFactionTurretCount(); i++) {
+		ManagedReference<SceneObject*> turret = city->getCityFactionTurret(i);
+		if (turret != nullptr) {
+			int turretCost = rankDiscount * 1500;
+			totalcost += turretCost;
+			maintList->addMenuItem("@city/city:default \t" + turret->getObjectName()->getFullPath() + " : " + String::valueOf(turretCost) + " @city/city:credits");
+		}
+	}
+
 	maintList->addMenuItem("@city/city:tot_maint " + String::valueOf(totalcost) + " @city/city:credits"); // Total Maintenance:
 
 	ghost->addSuiBox(maintList);
@@ -2467,10 +2491,19 @@ bool CityManagerImplementation::canSupportMoreTrainers(CityRegion* city) {
 
 
 bool CityManagerImplementation::canSupportMoreFactionTroops(CityRegion* city) {
+
 	if (city == nullptr)
 		return false;
 
 	return city->getFactionTroopCount() < factionTroopsMax;
+}
+
+bool CityManagerImplementation::canSupportMoreFactionTurrets(CityRegion* city) {
+	if (city == nullptr)
+		return false;
+
+	return city->getFactionTurretCount() < factionTurretsMax;
+
 }
 
 bool CityManagerImplementation::canSupportMoreMissionTerminals(CityRegion* city) {

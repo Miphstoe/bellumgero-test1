@@ -134,6 +134,9 @@ class CityRegion extends ManagedObject implements Logger {
 	protected SortedVector<SceneObject> cityFactionTroops;
 
 	@dereferenced
+	protected SortedVector<SceneObject> cityFactionTurrets;
+
+	@dereferenced
 	protected transient VectorMap<unsigned long, TangibleObject> bazaars;
 
 	public static final byte RANK_CLIENT = 0;
@@ -590,6 +593,11 @@ class CityRegion extends ManagedObject implements Logger {
 		return cityFactionTroops.size();
 	}
 
+	
+	public int getFactionTurretCount() {
+		return cityFactionTurrets.size();
+	}
+
 	@preLocked
 	public void addMissionTerminal(SceneObject mt) {
 		cityMissionTerminals.put(mt);
@@ -613,6 +621,11 @@ class CityRegion extends ManagedObject implements Logger {
 		cityFactionTroops.put(troop);
 	}
 
+	
+	public void addFactionTurret(SceneObject turret) {
+		cityFactionTurrets.put(turret);
+	}
+
 	@preLocked
 	public void removeMissionTerminal(SceneObject mt) {
 		cityMissionTerminals.drop(mt);
@@ -632,6 +645,11 @@ class CityRegion extends ManagedObject implements Logger {
 	@preLocked
 	public void removeFactionTroop(SceneObject troop) {
 		cityFactionTroops.drop(troop);
+	}
+
+	
+	public void removeFactionTurret(SceneObject turret) {
+		cityFactionTurrets.drop(turret);
 	}
 
 	@preLocked
@@ -654,6 +672,9 @@ class CityRegion extends ManagedObject implements Logger {
 
 	@preLocked
 	public native void removeAllFactionTroops();
+
+	
+	public native void removeAllFactionTurrets();
 
 	@preLocked
 	public native void removeAllTerminals();
@@ -851,6 +872,11 @@ class CityRegion extends ManagedObject implements Logger {
 	@dirty
 	public SceneObject getCityFactionTroop(int indx) {
 		return cityFactionTroops.get(indx);
+	}
+
+	
+	public SceneObject getCityFactionTurret(int indx) {
+		return cityFactionTurrets.get(indx);
 	}
 
 	public native void transferCivicStructuresToMayor();

@@ -1,0 +1,21 @@
+/*
+                Copyright <SWGEmu>
+        See file COPYING for copying conditions.
+*/
+
+package server.zone.managers.city;
+
+import engine.util.Observer;
+import engine.util.Observable;
+import engine.core.ManagedObject;
+
+include engine.log.Logger;
+
+class CityFactionTurretObserver extends Observer implements Logger {
+
+    public CityFactionTurretObserver() {
+        Logger.setLoggingName("CityFactionTurretObserver");
+    }
+
+    public native int notifyObserverEvent(unsigned int eventType, Observable observable, ManagedObject arg1, long arg2);
+}

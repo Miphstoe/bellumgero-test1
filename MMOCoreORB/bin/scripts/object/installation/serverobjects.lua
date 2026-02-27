@@ -46,6 +46,7 @@
 includeFile("installation/base/serverobjects.lua")
 includeFile("installation/battlefield/serverobjects.lua")
 includeFile("installation/faction_perk/serverobjects.lua")
+includeFile("installation/city_defense/serverobjects.lua") 
 includeFile("installation/generators/serverobjects.lua")
 includeFile("installation/manufacture/serverobjects.lua")
 includeFile("installation/mining_gas/serverobjects.lua")

@@ -92,6 +92,7 @@ void CityRegionImplementation::initialize() {
 	cityMissionTerminals.setNoDuplicateInsertPlan();
 	citySkillTrainers.setNoDuplicateInsertPlan();
 	cityFactionTroops.setNoDuplicateInsertPlan();
+	cityFactionTurrets.setNoDuplicateInsertPlan();
 
 	bazaars.setNoDuplicateInsertPlan();
 	bazaars.setNullValue(nullptr);
@@ -849,6 +850,18 @@ void CityRegionImplementation::removeAllFactionTroops() {
 
 	cityFactionTroops.removeAll();
 }
+
+void CityRegionImplementation::removeAllFactionTurrets() {
+	for (int i = cityFactionTurrets.size() - 1; i >= 0 ; --i) {
+		Reference<SceneObject*> turret = cityFactionTurrets.get(i);
+		Locker locker(turret);
+		turret->destroyObjectFromWorld(false);
+		turret->destroyObjectFromDatabase(true);
+	}
+
+	cityFactionTurrets.removeAll();
+}
+
 
 void CityRegionImplementation::removeAllDecorations() {
 	Locker slocker(&structureListMutex);

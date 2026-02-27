@@ -103,3 +103,16 @@ object_weapon_ranged_turret_shared_turret_block_large = SharedWeaponObjectTempla
 }
 
 ObjectTemplates:addClientTemplate(object_weapon_ranged_turret_shared_turret_block_large, "object/weapon/ranged/turret/shared_turret_block_large.iff")
+
+-- ============================================================
+-- City Defense Turret Weapon (shared client template)
+-- NOTE: You must add this IFF to TRE:
+--   object/weapon/ranged/turret/shared_city_turret_tower.iff
+-- (copy from shared_turret_block_large.iff)
+-- ============================================================
+
+object_weapon_ranged_turret_shared_city_turret_tower = SharedWeaponObjectTemplate:new {
+	clientTemplateFileName = "object/weapon/ranged/turret/shared_city_turret_tower.iff"
+}
+
+ObjectTemplates:addClientTemplate(object_weapon_ranged_turret_shared_city_turret_tower, "object/weapon/ranged/turret/shared_city_turret_tower.iff")

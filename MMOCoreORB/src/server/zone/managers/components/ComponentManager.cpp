@@ -118,6 +118,7 @@
 #include "server/zone/objects/structure/components/GarageDataComponent.h"
 #include "server/zone/objects/creature/components/TrainerMenuComponent.h"
 #include "server/zone/objects/creature/components/CityFactionTroopMenuComponent.h"
+#include "server/zone/objects/installation/components/CityDefenseTurretMenuComponent.h"
 #include "server/zone/objects/creature/components/SarlaccMenuComponent.h"
 #include "server/zone/objects/creature/components/PetMenuComponent.h"
 #include "server/zone/objects/tangible/components/FireHeavyWeaponMenuComponent.h"
@@ -314,6 +315,7 @@ ComponentManager::ComponentManager() {
 
 	components.put("TrainerMenuComponent", new TrainerMenuComponent());
 	components.put("CityFactionTroopMenuComponent", new CityFactionTroopMenuComponent());
+    components.put("CityDefenseTurretMenuComponent", new CityDefenseTurretMenuComponent());
 	components.put("PetMenuComponent", new PetMenuComponent());
 
 	components.put("FireHeavyWeaponMenuComponent", new FireHeavyWeaponMenuComponent());
