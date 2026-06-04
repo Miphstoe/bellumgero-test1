@@ -518,7 +518,7 @@ function conv_handler:handleBGTokenTrade2(pConvTemplate, pPlayer, pNpc, selected
 end
 
 function conv_handler:getBGTokenReward(screenId)
-    -- Template mapping for 20 items - EDIT THE TEMPLATES AND NAMES BELOW
+    -- Template mapping for 21 items - EDIT THE TEMPLATES AND NAMES BELOW
     local rewards = {
         ["give_item_01"] = {name = "LCD Screen", template = "object/tangible/furniture/all/frn_all_scrolling_screen.iff"},
         ["give_item_02"] = {name = "Imperial Banner on Pole", template = "object/tangible/gcw/flip_banner_onpole_imperial.iff"},
@@ -540,6 +540,7 @@ function conv_handler:getBGTokenReward(screenId)
         ["give_item_18"] = {name = "Flora Recycler", template = "object/tangible/recycler/flora_recycler.iff"},
         ["give_item_19"] = {name = "Metal Recycler", template = "object/tangible/recycler/metal_recycler.iff"},
         ["give_item_20"] = {name = "Ore Recycler", template = "object/tangible/recycler/ore_recycler.iff"},
+        ["give_item_21"] = {name = "Hanging Planter", template = "object/tangible/furniture/decorative/hanging_planter.iff"},
     }
     return rewards[screenId]
 end
@@ -1317,6 +1318,7 @@ function conv_handler:getHolocronReward(screenId)
         ["give_holo_12"] = {name = "Dark Banner", template = "object/tangible/furniture/jedi/frn_all_banner_dark.iff"},
         ["give_holo_13"] = {name = "Light Banner", template = "object/tangible/furniture/jedi/frn_all_banner_light.iff"},
         ["give_holo_11"] = {name = "30k Stack Resource Deed", template = "object/tangible/veteran_reward/resource.iff"},
+        ["give_holo_14"] = {name = "Small Aurillian Plant", template = "object/tangible/loot/plant_grow/plant_stage_1.iff"},
     }
     return rewards[screenId]
 end

@@ -19,8 +19,8 @@ TieredScheduledEvent.EVENT_RESPAWN_DELAY = 10     -- our event respawn delay in 
 TieredScheduledEvent.RESPAWN_CUTOFF_BUFFER = 15   -- cutoff fires at (END_TIME - buffer)
 
 -- Absolute start and end times (server local time)
-TieredScheduledEvent.START_TIME = { year = 2026, month = 4, day = 26, hour = 18, min = 00, sec = 0 }
-TieredScheduledEvent.END_TIME   = { year = 2026, month = 4, day = 26, hour = 19, min = 00, sec = 0 }
+TieredScheduledEvent.START_TIME = { year = 2026, month = 5, day = 31, hour = 18, min = 00, sec = 0 }
+TieredScheduledEvent.END_TIME   = { year = 2026, month = 5, day = 31, hour = 19, min = 00, sec = 0 }
 
 -- Weekly schedule (alternative to absolute times)
 TieredScheduledEvent.WEEKLY = { dow = "sunday", hour = 3, min = 0, sec = 0 }
@@ -35,30 +35,30 @@ TieredScheduledEvent.CATCH_UP_IF_MISSED = true
 -- TIER CONFIGURATION - Each tier has its own mob list
 -- Tier 1: 0-15 minutes (Easy mobs)
 TieredScheduledEvent.TIER1_NPCS = {
-  { planet = "corellia", template = "savage_rend_grak", x = -179, y = -4719, z = 28, heading = 0 },
-  { planet = "corellia", template = "savage_rend_grak", x = -181, y = -4721, z = 28, heading = 0 },
-  { planet = "corellia", template = "savage_rend_grak", x = -183, y = -4723, z = 28, heading = 0 },
-  { planet = "corellia", template = "savage_rend_grak", x = -185, y = -4725, z = 28, heading = 0 },
+  { planet = "endor", template = "giant_ewok_graaku", x = -2684, y = 5293, z = 200, heading = 0 },
+  { planet = "endor", template = "giant_ewok_graaku", x = -2686, y = 5295, z = 200, heading = 0 },
+  { planet = "endor", template = "giant_ewok_graaku", x = -2688, y = 5297, z = 200, heading = 0 },
+  { planet = "endor", template = "giant_ewok_graaku", x = -2690, y = 5299, z = 200, heading = 0 },
 }
 
 -- Tier 2: 15-30 minutes (Medium mobs)
 TieredScheduledEvent.TIER2_NPCS = {
-  { planet = "corellia", template = "dreadmaw_devourer_grak", x = -179, y = -4719, z = 28, heading = 0 },
-  { planet = "corellia", template = "dreadmaw_devourer_grak", x = -181, y = -4721, z = 28, heading = 0 },
-  { planet = "corellia", template = "dreadmaw_devourer_grak", x = -183, y = -4723, z = 28, heading = 0 },
+  { planet = "endor", template = "giant_ewok_torga", x = -2684, y = 5293, z = 200, heading = 0 },
+  { planet = "endor", template = "giant_ewok_torga", x = -2686, y = 5295, z = 200, heading = 0 },
+  { planet = "endor", template = "giant_ewok_torga", x = -2688, y = 5297, z = 200, heading = 0 },
 }
 
 -- Tier 3: 30-45 minutes (Hard mobs)
 TieredScheduledEvent.TIER3_NPCS = {
  -- { planet = "corellia", template = "meatlump_loon", x = -172, y = -4723, z = 28, heading = 0 },
-  { planet = "corellia", template = "apex_ravager_grak", x = -179, y = -4719, z = 28, heading = 0 },
-  { planet = "corellia", template = "apex_ravager_grak", x = -181, y = -4721, z = 28, heading = 0 },
+  { planet = "endor", template = "giant_ewok_nakku", x = -2684, y = 5293, z = 200, heading = 0 },
+  { planet = "endor", template = "giant_ewok_nakku", x = -2686, y = 5295, z = 200, heading = 0 },
 }
 
 -- Tier 4: 45-60 minutes (Boss mobs)
 TieredScheduledEvent.TIER4_NPCS = {
  -- { planet = "corellia", template = "wookiee_jedi_event", x = -172, y = -4723, z = 28, heading = 0 },
-  { planet = "corellia", template = "primordial_warlord_grak", x = -179, y = -4719, z = 28, heading = 0 },
+  { planet = "endor", template = "giant_ewok_warchief", x = -2684, y = 5293, z = 200, heading = 0 },
   --{ planet = "corellia", template = "wookiee_jedi_event", x = -180, y = -4725, z = 28, heading = 0 },
 }
 

@@ -975,6 +975,65 @@ void CreatureManagerImplementation::droidHarvest(Creature* creature, CreatureObj
 	}
 }
 
+void CreatureManagerImplementation::droidMilk(Creature* creature, CreatureObject* droid, int harvestBonus) {
+	ManagedReference<CreatureObject*> owner = droid->getLinkedCreature().get();
+
+	if (owner == nullptr)
+		return;
+
+	Locker pLock(owner, droid);
+
+	Zone* zone = droid->getZone();
+
+	if (zone == nullptr || !creature->isCreature())
+		return;
+
+	if (!creature->canDroidMilkMe(owner, droid))
+		return;
+
+	creature->setMilkState(ALREADYMILKED);
+
+	ManagedReference<ResourceManager*> resourceManager = zone->getZoneServer()->getResourceManager();
+
+	String restype = creature->getMilkType();
+	int quantity = Math::max((int)creature->getMilk(), 3);
+
+	ManagedReference<ResourceSpawn*> resourceSpawn = resourceManager->getCurrentSpawn(restype, zone->getZoneName());
+
+	if (resourceSpawn == nullptr) {
+		owner->sendSystemMessage("Error: Server cannot locate a current spawn of " + restype);
+		creature->setMilkState(NOTMILKED);
+		return;
+	}
+
+	float density = resourceSpawn->getDensityAt(zone->getZoneName(), droid->getPositionX(), droid->getPositionY());
+
+	if (density > 0.75f)
+		quantity = (int)(quantity * 1.25f);
+	else if (density > 0.50f)
+		quantity = (int)(quantity * 1.00f);
+	else if (density > 0.25f)
+		quantity = (int)(quantity * 0.75f);
+	else
+		quantity = (int)(quantity * 0.50f);
+
+	int droidBonus = (int)(quantity * (harvestBonus / 100.0f));
+	quantity += droidBonus;
+
+	TransactionLog trx(TrxCode::HARVESTED, owner, resourceSpawn);
+	resourceManager->harvestResourceToPlayer(trx, owner, resourceSpawn, quantity);
+	trx.commit();
+
+	owner->sendSystemMessage("@skl_use:milk_success");
+
+	ManagedReference<PlayerManager*> playerManager = zoneServer->getPlayerManager();
+
+	int xp = creature->getLevel() * 5 + 19;
+
+	if (playerManager != nullptr)
+		playerManager->awardExperience(owner, "scout", xp, true);
+}
+
 void CreatureManagerImplementation::harvest(Creature* creature, CreatureObject* player, int selectedID) {
 	Zone* zone = creature->getZone();
 
@@ -1168,11 +1227,29 @@ void CreatureManagerImplementation::tame(Creature* creature, CreatureObject* pla
 	int maxLevelofPets = player->getSkillMod("tame_level");
 
 	if (!player->hasSkill("outdoors_creaturehandler_novice") || (templateLevel > maxLevelofPets)) {
+		StringBuffer tameFailMsg;
+		tameFailMsg << "[TameCheck] FAIL player=" << player->getFirstName()
+		            << " template=" << creatureTemplate->getTemplateName()
+		            << " creatureLevel=" << templateLevel
+		            << " tame_level=" << maxLevelofPets
+		            << " keep_creature=" << player->getSkillMod("keep_creature")
+		            << " tame_aggro=" << player->getSkillMod("tame_aggro")
+		            << " reason=" << (!player->hasSkill("outdoors_creaturehandler_novice") ? "not_CH" : "level_too_high");
+		info(tameFailMsg.toString(), true);
 		player->sendSystemMessage("@pet/pet_menu:sys_lack_skill"); // You lack the skill to be able to tame that creature.
 		return;
 	}
 
 	if ((creature->isVicious() && player->getSkillMod("tame_aggro") < 1) || creature->getChanceToTame(player) <= 0) {
+		StringBuffer tameFailMsg;
+		tameFailMsg << "[TameCheck] FAIL player=" << player->getFirstName()
+		            << " template=" << creatureTemplate->getTemplateName()
+		            << " creatureLevel=" << templateLevel
+		            << " tame_level=" << maxLevelofPets
+		            << " tame_aggro=" << player->getSkillMod("tame_aggro")
+		            << " chanceToTame=" << creature->getChanceToTame(player)
+		            << " reason=" << (creature->isVicious() ? "vicious_no_aggro" : "no_chance");
+		info(tameFailMsg.toString(), true);
 		player->sendSystemMessage("@pet/pet_menu:sys_lack_skill"); // You lack the skill to be able to tame that creature.
 		return;
 	}
@@ -1226,13 +1303,35 @@ void CreatureManagerImplementation::tame(Creature* creature, CreatureObject* pla
 			}
 
 			if (++currentlySpawned >= maxPets) {
+				StringBuffer tameFailMsg;
+				tameFailMsg << "[TameCheck] FAIL player=" << player->getFirstName()
+				            << " template=" << creatureTemplate->getTemplateName()
+				            << " creatureLevel=" << level
+				            << " tame_level=" << maxLevelofPets
+				            << " keep_creature=" << maxPets
+				            << " currentlySpawned=" << currentlySpawned
+				            << " spawnedLevel=" << spawnedLevel
+				            << " reason=too_many_active_pets";
+				info(tameFailMsg.toString(), true);
 				player->sendSystemMessage("@pet/pet_menu:too_many"); // You can't control any more pets. Store one first
 				return;
 			}
 
 			spawnedLevel += object->getLevel();
 
-			if ((spawnedLevel + level) >= maxLevelofPets) {
+			// BUG FIX: was '>=' which incorrectly rejected tames where total == maxLevelofPets
+			if ((spawnedLevel + level) > maxLevelofPets) {
+				StringBuffer tameFailMsg;
+				tameFailMsg << "[TameCheck] FAIL player=" << player->getFirstName()
+				            << " template=" << creatureTemplate->getTemplateName()
+				            << " creatureLevel=" << level
+				            << " tame_level=" << maxLevelofPets
+				            << " keep_creature=" << maxPets
+				            << " currentlySpawned=" << currentlySpawned
+				            << " spawnedLevel=" << spawnedLevel
+				            << " combinedLevel=" << (spawnedLevel + level)
+				            << " reason=total_level_exceeded";
+				info(tameFailMsg.toString(), true);
 				player->sendSystemMessage("Taming this pet would exceed your control level ability.");
 				return;
 			}

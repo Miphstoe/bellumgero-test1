@@ -2,12 +2,14 @@
 
 #include "server/zone/objects/creature/CreatureObject.h"
 #include "server/zone/objects/player/PlayerObject.h"
+#include "server/zone/objects/creature/ai/AiAgent.h"
 #include "server/zone/objects/player/sui/listbox/SuiListBox.h"
 #include "server/zone/objects/player/sui/inputbox/SuiInputBox.h"
 #include "server/zone/objects/player/sui/callbacks/DoctorBuffDroidPriceSuiCallback.h"
 #include "server/zone/objects/player/sui/callbacks/DoctorBuffDroidPriceInputSuiCallback.h"
 #include "server/zone/objects/player/sui/callbacks/DoctorBuffDroidDiscountSuiCallback.h"
 #include "server/zone/objects/player/sui/callbacks/DoctorBuffDroidToggleSuiCallback.h"
+#include "server/zone/objects/player/sui/callbacks/DoctorBuffDroidAdTextSuiCallback.h"
 #include "server/zone/objects/intangible/VehicleControlDevice.h"
 #include "server/zone/objects/scene/components/DataObjectComponentReference.h"
 #include "server/zone/objects/factorycrate/FactoryCrate.h"
@@ -856,6 +858,26 @@ void DoctorBuffDroidMenuComponent::promptToggleSelection(SceneObject* sceneObjec
 	player->sendMessage(box->generateMessage());
 }
 
+void DoctorBuffDroidMenuComponent::promptAdTextInput(SceneObject* sceneObject, CreatureObject* player) {
+	if (sceneObject == nullptr || player == nullptr)
+		return;
+
+	DoctorBuffDroidDataComponent* data = getDroidData(sceneObject);
+	if (data == nullptr)
+		return;
+
+	ManagedReference<SuiInputBox*> box = new SuiInputBox(player, SuiWindowType::NONE);
+	box->setPromptTitle("Doctor Buff Droid Ad Message");
+	box->setPromptText("Enter the advertisement message the droid will bark to nearby players (max 200 characters). Ad barking will be enabled automatically.");
+	box->setMaxInputSize(200);
+	String currentText = data->getAdBarkText();
+	if (!currentText.isEmpty())
+		box->setDefaultInput(currentText);
+	box->setCallback(new DoctorBuffDroidAdTextSuiCallback(player->getZoneServer(), sceneObject));
+	player->getPlayerObject()->addSuiBox(box);
+	player->sendMessage(box->generateMessage());
+}
+
 bool DoctorBuffDroidMenuComponent::performMedicalBuff(SceneObject* sceneObject, CreatureObject* player, DoctorBuffDroidDataComponent* data, bool useJanta) {
 	if (sceneObject == nullptr || player == nullptr || data == nullptr)
 		return false;
@@ -1019,6 +1041,104 @@ bool DoctorBuffDroidMenuComponent::performResistance(SceneObject* sceneObject, C
 	return true;
 }
 
+bool DoctorBuffDroidMenuComponent::performPetBuff(SceneObject* sceneObject, CreatureObject* player, DoctorBuffDroidDataComponent* data, bool useJanta) {
+	if (sceneObject == nullptr || player == nullptr || data == nullptr)
+		return false;
+
+	DoctorBuffDroidDataComponent::ServiceType service = useJanta ? DoctorBuffDroidDataComponent::SERVICE_JANTA : DoctorBuffDroidDataComponent::SERVICE_BUFFS;
+	const char* serviceLabel = useJanta ? "Janta buffs" : "medical buffs";
+
+	if (!data->isServiceEnabled(service)) {
+		player->sendSystemMessage("This Doctor Buff Droid currently has that buff service disabled.");
+		return false;
+	}
+
+	uint32 attrMask = useJanta ? data->getLoadedJantaBuffAttributes() : data->getLoadedBuffAttributes();
+	if (attrMask == 0) {
+		if (useJanta)
+			player->sendSystemMessage("This Doctor Buff Droid is out of Janta buff pack supplies.");
+		else
+			player->sendSystemMessage("This Doctor Buff Droid is out of buff pack supplies.");
+		return false;
+	}
+
+	// Find the player's first active, living, non-combat pet
+	ManagedReference<PlayerObject*> ghost = player->getPlayerObject();
+	if (ghost == nullptr) {
+		player->sendSystemMessage("You do not have an active pet to buff.");
+		return false;
+	}
+
+	AiAgent* activePet = nullptr;
+	for (int i = 0; i < ghost->getActivePetsSize(); ++i) {
+		ManagedReference<AiAgent*> pet = ghost->getActivePet(i);
+		if (pet != nullptr && !pet->isDead()) {
+			activePet = pet.get();
+			break;
+		}
+	}
+
+	if (activePet == nullptr) {
+		player->sendSystemMessage("You do not have an active pet to buff.");
+		return false;
+	}
+
+	if (activePet->isInCombat()) {
+		player->sendSystemMessage("Your pet is in combat and cannot be buffed right now.");
+		return false;
+	}
+
+	Time now;
+	uint64 nowMs = now.getMiliTime();
+
+	if (!ensureBivoliBuffActive(sceneObject, data)) {
+		player->sendSystemMessage("This Doctor Buff Droid is out of Bivoli supplies.");
+		return false;
+	}
+
+	int price = data->getDiscountedPrice(service, player);
+	if (!deductCredits(player, price)) {
+		player->sendSystemMessage("You do not have enough credits to purchase Doctor Buff Droid pet buffs.");
+		return false;
+	}
+
+	PlayerManager* playerManager = player->getZoneServer()->getPlayerManager();
+	if (playerManager != nullptr) {
+		int envMod = getDroidEnvironmentalMedRating(sceneObject);
+		int healMod = getOwnerHealingWoundTreatment(sceneObject, data, player, useJanta);
+
+		for (uint8 attr = 0; attr < 9; ++attr) {
+			if (!(attrMask & (1u << attr)))
+				continue;
+			int stock = useJanta ? data->getJantaBuffStockByAttr(attr) : data->getBuffStockByAttr(attr);
+			if (stock <= 0)
+				continue;
+
+			float packPower = useJanta ? data->getJantaBuffPackPowerByAttr(attr) : data->getBuffPackPowerByAttr(attr);
+			if (packPower <= 0.0f)
+				packPower = 500.0f;
+
+			float buffDuration = useJanta ? data->getJantaBuffPackDurationByAttr(attr) : data->getBuffPackDurationByAttr(attr);
+			if (buffDuration <= 0.0f)
+				buffDuration = 7200.f;
+
+			int buffAmount = calculateDroidBuffPower(packPower, envMod, healMod);
+
+			playerManager->healEnhance(player, activePet, attr, buffAmount, buffDuration, 0);
+			if (useJanta)
+				data->consumeJantaBuffStock(attr);
+			else
+				data->consumeBuffStock(attr);
+		}
+	}
+
+	data->addEarnings(price);
+	persistDroidState(sceneObject);
+	activePet->playEffect("clienteffect/healing_healenhance.cef", "");
+	player->sendSystemMessage("Doctor Buff Droid " + String(serviceLabel) + " applied to your pet.");
+	return true;
+}
+
 void DoctorBuffDroidMenuComponent::fillObjectMenuResponse(SceneObject* sceneObject, ObjectMenuResponse* menuResponse, CreatureObject* player) const {
 	if (sceneObject == nullptr || player == nullptr)
 		return;
@@ -1032,6 +1152,8 @@ void DoctorBuffDroidMenuComponent::fillObjectMenuResponse(SceneObject* sceneObje
 	menuResponse->addRadialMenuItem(MENU_ROOT, 3, "Doctor Buff Droid");
 	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_BUFFS, 3, "Get Buffs");
 	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_JANTA_BUFFS, 3, "Get Janta Buffs");
+	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_PET_BUFFS, 3, "Buff My Pet");
+	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_PET_JANTA_BUFFS, 3, "Buff My Pet (Janta)");
 	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_WOUNDS, 3, "Heal Wounds");
 	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_POISON, 3, "Buy Poison Resist");
 	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_DISEASE, 3, "Buy Disease Resist");
@@ -1048,6 +1170,8 @@ void DoctorBuffDroidMenuComponent::fillObjectMenuResponse(SceneObject* sceneObje
 	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_TOGGLE_SERVICES, 3, "Toggle Services");
 	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_EARNINGS, 3, "View Earnings");
 	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_WITHDRAW, 3, "Withdraw Earnings");
+	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_SET_AD, 3, "Set Ad Message");
+	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_TOGGLE_AD, 3, String("Ad Barking (") + (data->isAdBarkEnabled() ? "On" : "Off") + ")");
 	menuResponse->addRadialMenuItemToRadialID(MENU_ROOT, MENU_STORE, 3, "Store Droid");
 }
 
@@ -1065,6 +1189,12 @@ int DoctorBuffDroidMenuComponent::handleObjectMenuSelect(SceneObject* sceneObjec
 		return 0;
 	case MENU_JANTA_BUFFS:
 		performMedicalBuff(sceneObject, player, data, true);
+		return 0;
+	case MENU_PET_BUFFS:
+		performPetBuff(sceneObject, player, data);
+		return 0;
+	case MENU_PET_JANTA_BUFFS:
+		performPetBuff(sceneObject, player, data, true);
 		return 0;
 	case MENU_WOUNDS:
 		performWoundHealing(sceneObject, player, data);
@@ -1139,6 +1269,24 @@ int DoctorBuffDroidMenuComponent::handleObjectMenuSelect(SceneObject* sceneObjec
 				player->addCashCredits(amount, true);
 				player->sendSystemMessage("Withdrew " + String::valueOf(amount) + " credits from the Doctor Buff Droid.");
 			}
+		}
+		return 0;
+	case MENU_SET_AD:
+		if (!data->isOwner(player)) {
+			sendOwnerOnlyMessage(player);
+			return 0;
+		}
+		promptAdTextInput(sceneObject, player);
+		return 0;
+	case MENU_TOGGLE_AD:
+		if (!data->isOwner(player)) {
+			sendOwnerOnlyMessage(player);
+			return 0;
+		} else {
+			bool nowEnabled = !data->isAdBarkEnabled();
+			data->setAdBarkEnabled(nowEnabled);
+			persistDroidState(sceneObject);
+			player->sendSystemMessage(String("Doctor Buff Droid ad barking ") + (nowEnabled ? "enabled." : "disabled."));
 		}
 		return 0;
 	case MENU_STORE:
