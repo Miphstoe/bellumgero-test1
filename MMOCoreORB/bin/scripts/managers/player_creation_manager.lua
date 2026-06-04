@@ -25,13 +25,13 @@ marksmanRifle = "object/weapon/ranged/rifle/rifle_cdef.iff"
 
 marksmanCarbine = "object/weapon/ranged/carbine/carbine_cdef.iff"
 
---brawlerOneHander = "object/weapon/melee/knife/knife_stone.iff"
+brawlerOneHander = "object/weapon/melee/knife/knife_stone.iff"
 
 brawlerTwoHander = "object/weapon/melee/axe/axe_heavy_duty.iff"
 
 brawlerPolearm = "object/weapon/melee/polearm/lance_staff_wood_s1.iff"
 
-survivalKnife = "object/weapon/melee/knife/knife_survival.iff"
+--survivalKnife = "object/weapon/melee/knife/knife_survival.iff"
 
 genericTool = "object/tangible/crafting/station/generic_tool.iff"
 
