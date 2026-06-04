@@ -96,6 +96,8 @@ includeFile("conversations/events/syren/neutral_tyla_jinn_conv.lua")
 includeFile("conversations/events/syren/rebel_veega_madish_conv.lua")
 includeFile("conversations/events/syren/imperial_jevan_monsul_conv.lua")
 includeFile("conversations/events/syren/doctor_edvar_vang_conv.lua")
+includeFile("conversations/endor/dr_kaelen_varr_convo_handler.lua")
+includeFile("conversations/endor/dr_kaelen_varr_conv.lua")
 includeFile("conversations/events/syren/kaila_min_conv.lua")
 includeFile("conversations/events/syren/tovar_blackmoor_conv.lua")
 
@@ -185,6 +187,7 @@ includeFile("conversations/dungeon/warren/phy_hudgen_conv.lua")
 includeFile("conversations/dungeon/warren/warren_worker_conv.lua")
 
 -- Geonosian Lab
+includeFile("conversations/dungeon/geonosian_lab/acklay_instance_keeper_conv.lua")
 includeFile("conversations/dungeon/geonosian_lab/biogenic_assistant_convo.lua")
 includeFile("conversations/dungeon/geonosian_lab/biogenic_construction_convo.lua")
 includeFile("conversations/dungeon/geonosian_lab/biogenic_crazyguy_convo.lua")
@@ -360,10 +363,29 @@ print("Finished loading bg_token vendor")
 print("Loading conversations.lua - checking bg_token vendor 2...")
 includeFile("conversations/vendors/bg_token_vendor_2_conv.lua")
 includeFile("conversations/bellum/convo_bg_force_hermit.lua")
+includeFile("conversations/bellum/lost_holocron_cartographer_conv.lua")
+includeFile("conversations/bellum/rangers_path_conv.lua")
+includeFile("conversations/bellum/galactic_beastmaster_trial_conv.lua")
+includeFile("conversations/bellum/galactic_tour_conv.lua")
+includeFile("conversations/bellum/artisan_resource_contract_conv.lua")
+includeFile("conversations/bellum/galactic_relief_effort_conv.lua")
+includeFile("conversations/bellum/galactic_relief_patient_conv.lua")
+includeFile("conversations/custom/smuggler/vex_talon_conv.lua")
+includeFile("conversations/custom/smuggler/smuggler_receiver_conv.lua")
 print("Finished loading bg_token vendor 2")
 print("Finished loading bg_token vendor 2")
+
+-- BG TOKEN VENDOR 3 - Veteran Rewards
+print("Loading conversations.lua - checking bg_token vendor 3 (veteran rewards)...")
+includeFile("conversations/vendors/bg_token_vendor_3_conv.lua")
+print("Finished loading bg_token vendor 3")
 
 -- HOLOCRON VILLAGE VENDOR
 print("Loading conversations.lua - checking holocron village vendor...")
 includeFile("conversations/vendors/holocron_village_vendor_conv.lua")
 print("Finished loading holocron village vendor")
+
+-- ARTISAN PROCUREMENT VENDOR
+print("Loading conversations.lua - checking artisan procurement vendor...")
+includeFile("conversations/vendors/artisan_procurement_vendor_conv.lua")
+print("Finished loading artisan procurement vendor")

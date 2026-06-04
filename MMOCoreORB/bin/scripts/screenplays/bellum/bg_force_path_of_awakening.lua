@@ -202,7 +202,7 @@ function BgForcePathOfAwakening:giveShrineWaypoints(pPlayer)
 		local existingId = readScreenPlayData(pPlayer, "bg_force_path", wpKey)
 
 		if (existingId == nil or getSceneObject(existingId) == nil) then
-			local waypointID = PlayerObject(pGhost):addWaypoint(wp.planet, wp.name, wp.desc, wp.x, wp.z, wp.y, WAYPOINT_BLUE, true, true, 0)
+			local waypointID = PlayerObject(pGhost):addWaypoint(wp.planet, wp.name, wp.desc, wp.x, wp.z, wp.y, WAYPOINT_SPACE, true, true, 0)
 			if (waypointID ~= nil) then
 				writeScreenPlayData(pPlayer, "bg_force_path", wpKey, waypointID)
 			end
@@ -352,6 +352,11 @@ function BgForcePathOfAwakening:handleShrineInteract(pPlayer, shrineId)
 		return
 	end
 
+	if (CreatureObject(pPlayer):getPosture() ~= CROUCHED) then
+		CreatureObject(pPlayer):sendSystemMessage("@jedi_trials:show_respect")
+		return
+	end
+
 	if (self:isComplete(pPlayer)) then
 		CreatureObject(pPlayer):sendSystemMessage("You have already completed the Path of Awakening.")
 		return
@@ -425,6 +430,12 @@ function BgForcePathOfAwakening:meditationTick(pPlayer, pParam)
 			return
 		end
 
+		if (CreatureObject(pPlayer):getPosture() ~= CROUCHED) then
+			screenplay:setNumber(pPlayer, "bg_force_meditating", 0)
+			CreatureObject(pPlayer):sendSystemMessage("@jedi_trials:show_respect")
+			return
+		end
+
 		local distance = pPlayerObj:getDistanceTo(pShrine)
 		if (distance > 10) then
 			screenplay:setNumber(pPlayer, "bg_force_meditating", 0)
@@ -471,6 +482,12 @@ function BgForcePathOfAwakening:finishMeditation(pPlayer, pParam)
 		local pShrine = getSceneObject(shrineId)
 		if (pShrine == nil) then
 			screenplay:setNumber(pPlayer, "bg_force_meditating", 0)
+			return
+		end
+
+		if (CreatureObject(pPlayer):getPosture() ~= CROUCHED) then
+			screenplay:setNumber(pPlayer, "bg_force_meditating", 0)
+			CreatureObject(pPlayer):sendSystemMessage("@jedi_trials:show_respect")
 			return
 		end
 

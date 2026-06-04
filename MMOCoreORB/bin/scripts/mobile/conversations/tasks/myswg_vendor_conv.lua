@@ -156,7 +156,6 @@ loot1 = ConvoScreen:new {
     customDialogText = "Would you like to buy some loot drops?",
     stopConversation = "false",
     options = { 
-        {"30k stack Resource Deed - 500k", "option46"},
 --        {"Random lvl 50 Pistol Loot - 15k", "option56"},
 --        {"Random lvl 50 Carbine Loot - 15k", "option57"},
 --        {"Random lvl 50 Rifle Loot - 15k", "option58"},
@@ -245,7 +244,7 @@ newbuff1 = ConvoScreen:new {
     stopConversation = "false",
     options = { 
 
-        {"2500 Buffs 2hr - 10k", "buff1"},
+        {"1500 Buffs 2hr - 5k", "buff1"},
         {"Reset Buffs - 2k", "reset_buffs"},
     --    {"300% Doctor Buffs 6hr - 30k", "buff3"},
     --    {"200% Entertainer Buffs 4hr - 10k", "buff4"},
@@ -268,7 +267,7 @@ petbuff1 = ConvoScreen:new {
     customDialogText = "I can enhance your pet with powerful buffs!",
     stopConversation = "false",
     options = {
-        {"Pet 2500 Buffs 2hr - 10k", "petbuff_option1"},
+        {"Pet 2500 Buffs 2hr - 5k", "petbuff_option1"},
         {"Main menu.", "first_screen"},
     }
 }
@@ -285,6 +284,7 @@ travel1 = ConvoScreen:new {
         {"Dathomir - Nightsister Rancor Cave [Hard Difficulty] - 25k", "travel_nightsister_cave_confirm"},
         {"Talus - GCW Cave [Medium Difficulty] - 25k", "travel_gcw_cave_confirm"},
         {"Naboo - Blue Shadow Virus Bunker [Medium Difficulty] - 25k", "travel_bsv_confirm"},
+        {"Yavin4 - Geonosian Cave [Medium Difficulty] - 25k", "travel_geonosian_cave_confirm"},
         {"Main menu.", "first_screen"},
     }
 }
@@ -341,6 +341,18 @@ travel_bsv_confirm = ConvoScreen:new {
     }
 }
 myswg_vendor_conv:addScreen(travel_bsv_confirm)
+
+travel_geonosian_cave_confirm = ConvoScreen:new {
+    id = "travel_geonosian_cave_confirm",
+    leftDialog = "",
+    customDialogText = "Travel to the Geonosian Cave on Yavin4 for 25,000 credits?",
+    stopConversation = "false",
+    options = {
+        {"Yes, send me there.", "travel_geonosian_cave_teleport"},
+        {"No, show me travel options.", "travel1"},
+    }
+}
+myswg_vendor_conv:addScreen(travel_geonosian_cave_confirm)
 
 travel_complete = ConvoScreen:new {
     id = "travel_complete",
@@ -988,11 +1000,24 @@ myswg_vendor_ad_purchase_confirm = ConvoScreen:new {
     customDialogText = "Ready to purchase ad space for 100,000 credits? You'll be prompted to enter your custom advertisement message.",
     stopConversation = "false",
     options = {
-        {"Yes, I want to purchase an ad", "ad_purchase_proceed"},
+        {"Yes, I want to purchase an ad", "ad_autorenew_choice"},
         {"No, go back", "ad_menu"},
     }
 }
 myswg_vendor_conv:addScreen(myswg_vendor_ad_purchase_confirm);
+
+myswg_vendor_ad_autorenew_choice = ConvoScreen:new {
+    id = "ad_autorenew_choice",
+    leftDialog = "",
+    customDialogText = "Would you like to enable auto-renewal? Each week your ad will automatically renew for 100,000 credits, deducted from your cash or bank. Your ad will be cancelled if you cannot afford the renewal.",
+    stopConversation = "false",
+    options = {
+        {"Yes, enable auto-renewal (100k/week)", "ad_purchase_autorenew_yes"},
+        {"No, one-time purchase only",           "ad_purchase_autorenew_no"},
+        {"Cancel, go back",                      "ad_menu"},
+    }
+}
+myswg_vendor_conv:addScreen(myswg_vendor_ad_autorenew_choice);
 
 myswg_vendor_ad_view_queue = ConvoScreen:new {
     id = "ad_view_queue",

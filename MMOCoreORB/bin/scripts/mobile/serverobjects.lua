@@ -63,11 +63,32 @@ includeFile("vendors/attachment_exchange_vendor.lua")
 includeFile("vendors/bg_token_vendor.lua")
 
 -- BG Token Vendor 2 (75 tokens per item)
-includeFile("vendors/bg_token_vendor_2.lua")
+--includeFile("vendors/bg_token_vendor_2.lua")
+
+-- BG Token Vendor 3 - Veteran Rewards (75 tokens per item)
+includeFile("vendors/bg_token_vendor_3.lua")
 
 -- Bellum Gero custom mobiles
 includeFile("bellum/bg_force_old_man.lua")
+includeFile("bellum/mallichae_bg_rite.lua")
+includeFile("bellum/ranger_razor_cat_alpha.lua")
+includeFile("bellum/the_hand.lua")
+includeFile("bellum/gloomfang_mauler.lua")
+includeFile("bellum/rotmaw_mauler.lua")
+includeFile("bellum/dreadmaw_mauler.lua")
+includeFile("bellum/xalgorath.lua")
+includeFile("bellum/imperial_traitor.lua")
+includeFile("bellum/tour_coordinator.lua")
+includeFile("bellum/master_artisan_procurement_officer.lua")
+includeFile("bellum/imperial_traitor_elite.lua")
+includeFile("bellum/rebel_traitor.lua")
+includeFile("bellum/rebel_traitor_elite.lua")
+includeFile("bellum/field_captain_rax_vorn.lua")
+includeFile("bellum/war_general_kael_draxus.lua")
+includeFile("bellum/high_strategist_velkor_thane.lua")
+includeFile("bellum/supreme_warlord_darth_malvek.lua")
 -- Holocron Village Vendor (5 Holocrons of Destiny per item)
 includeFile("vendors/holocron_village_vendor.lua")
 
-
+-- Artisan Procurement Vendor
+includeFile("vendors/artisan_procurement_vendor.lua")

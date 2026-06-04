@@ -24,9 +24,15 @@ void TangibleObjectMenuComponent::fillObjectMenuResponse(SceneObject* sceneObjec
 		return;
 
 	TangibleObject* tano = cast<TangibleObject*>( sceneObject);
+	bool isLockedBriefcase = false;
+	if (tano->getObjectTemplate() != nullptr)
+		isLockedBriefcase = (tano->getObjectTemplate()->getTemplateFileName() == "briefcase_s01");
 
 	// Figure out what the object is and if its able to be Sliced.
-	if(tano->isSliceable() && !tano->isSecurityTerminal()) { // Check to see if the player has the correct skill level
+	if (isLockedBriefcase) {
+		if (player->hasSkill("combat_smuggler_novice"))
+			menuResponse->addRadialMenuItem(69, 3, "@slicing/slicing:slice"); // Slice
+	} else if(tano->isSliceable() && !tano->isSecurityTerminal()) { // Check to see if the player has the correct skill level
 
 		bool hasSkill = true;
 		ManagedReference<SceneObject*> inventory = player->getSlottedObject("inventory");
@@ -87,9 +93,11 @@ void TangibleObjectMenuComponent::fillObjectMenuResponse(SceneObject* sceneObjec
 		}
 	}
 
-	// Add unstack option for stackable items (only if in player's inventory and count > 1)
+	// Add split option for stackable items (only if in player's inventory and count > 1)
 	if (sceneObject->isASubChildOf(player) && tano->getUseCount() > 1) {
-		menuResponse->addRadialMenuItem(48, 3, "Unstack Items"); // Using SPLIT (48) from RadialOptions
+		if (isSplitStackItem(sceneObject)) {
+			menuResponse->addRadialMenuItem(48, 3, "@ui_radial:split");
+		}
 	}
 }
 
@@ -98,9 +106,36 @@ int TangibleObjectMenuComponent::handleObjectMenuSelect(SceneObject* sceneObject
 		return 0;
 
 	TangibleObject* tano = cast<TangibleObject*>( sceneObject);
+	bool isLockedBriefcase = false;
+	if (tano->getObjectTemplate() != nullptr)
+		isLockedBriefcase = (tano->getObjectTemplate()->getTemplateFileName() == "briefcase_s01");
 
+	if (selectedID == 69 && isLockedBriefcase) { // Slice [Locked Briefcase]
+		if (!player->hasSkill("combat_smuggler_novice")) {
+			player->sendSystemMessage("You lack the slicing expertise to crack open this briefcase.");
+			return 0;
+		}
 
-	if (selectedID == 69 && player->hasSkill("combat_smuggler_novice") ) { // Slice [PlayerLootCrate]
+		ManagedReference<SceneObject*> inventory = player->getSlottedObject("inventory");
+		if (inventory == nullptr || !inventory->hasObjectInContainer(sceneObject->getObjectID())) {
+			player->sendSystemMessage("The briefcase must be in your inventory to slice it.");
+			return 0;
+		}
+
+		if (player->containsActiveSession(SessionFacadeType::SLICING)) {
+			player->sendSystemMessage("@slicing/slicing:already_slicing");
+			return 0;
+		}
+
+		if (!tano->isSliceable())
+			tano->setSliceable(true);
+
+		//Create Session
+		ManagedReference<SlicingSession*> session = new SlicingSession(player);
+		session->initalizeSlicingMenu(player, tano);
+
+		return 0;
+	} else if (selectedID == 69 && player->hasSkill("combat_smuggler_novice") ) { // Slice [PlayerLootCrate]
 		if (player->containsActiveSession(SessionFacadeType::SLICING)) {
 			player->sendSystemMessage("@slicing/slicing:already_slicing");
 			return 0;
@@ -175,10 +210,9 @@ int TangibleObjectMenuComponent::handleObjectMenuSelect(SceneObject* sceneObject
 				}
 			}
 		}
-	} else if (selectedID == 48) { // Unstack Items (using SPLIT radial option)
+	} else if (selectedID == 48) { // Split (using SPLIT radial option)
 		// Only unstack if item is in player's inventory and has count > 1
 		if (sceneObject->isASubChildOf(player) && tano->getUseCount() > 1) {
-			unstackItems(sceneObject, player, tano);
 			return 0;
 		}
 	}
@@ -223,6 +257,13 @@ bool TangibleObjectMenuComponent::hasRenamePermission(CreatureObject* player, Ta
 	return false;
 }
 
+bool TangibleObjectMenuComponent::isSplitStackItem(SceneObject* object) {
+	if (object == nullptr)
+		return false;
+
+	return object->isFactoryCrate() || object->isResourceContainer();
+}
+
 void TangibleObjectMenuComponent::promptRenameObject(CreatureObject* player, TangibleObject* object) {
 	if (player == nullptr || object == nullptr)
 		return;
@@ -242,97 +283,4 @@ void TangibleObjectMenuComponent::promptRenameObject(CreatureObject* player, Tan
 
 	ghost->addSuiBox(inputBox);
 	player->sendMessage(inputBox->generateMessage());
-}
-
-void TangibleObjectMenuComponent::unstackItems(SceneObject* sceneObject, CreatureObject* player, TangibleObject* tano) const {
-	if (player == nullptr || tano == nullptr || sceneObject == nullptr)
-		return;
-
-	int currentCount = tano->getUseCount();
-
-	if (currentCount <= 1) {
-		player->sendSystemMessage("This item cannot be unstacked.");
-		return;
-	}
-
-	// Get the container (inventory)
-	ManagedReference<SceneObject*> container = sceneObject->getParent().get();
-	if (container == nullptr) {
-		player->sendSystemMessage("Unable to unstack items - no valid container.");
-		return;
-	}
-
-	// Get the template path to create new items
-	String templatePath = sceneObject->getObjectTemplate()->getFullTemplateString();
-	if (templatePath.isEmpty()) {
-		player->sendSystemMessage("Unable to unstack items - invalid template.");
-		return;
-	}
-
-	String itemName = sceneObject->getDisplayedName();
-	if (itemName.isEmpty())
-		itemName = sceneObject->getObjectNameStringIdName();
-
-	auto zoneServer = player->getZoneServer();
-	if (zoneServer == nullptr)
-		return;
-
-	int splitCount = currentCount / 2;
-	int remainingCount = currentCount - splitCount;
-
-	if (splitCount < 1 || remainingCount < 1) {
-		player->sendSystemMessage("This item cannot be unstacked.");
-		return;
-	}
-
-	ManagedReference<SceneObject*> newItem = zoneServer->createObject(templatePath.hashCode(), 1);
-	if (newItem == nullptr || !newItem->isTangibleObject()) {
-		player->sendSystemMessage("Unable to unstack items - failed to create new item.");
-		return;
-	}
-
-	TangibleObject* newTano = cast<TangibleObject*>(newItem.get());
-	newTano->setUseCount(splitCount, true);
-
-	// Reduce the original stack before transfer
-	tano->setUseCount(remainingCount, true);
-
-	// Prevent junk auto-stacking during transfer
-	tano->setLuaStringData("skip_junk_stack", "1");
-	newTano->setLuaStringData("skip_junk_stack", "1");
-	if (container->isTangibleObject()) {
-		TangibleObject* containerTano = container->asTangibleObject();
-		if (containerTano != nullptr) {
-			containerTano->setLuaStringData("skip_junk_stack", "1");
-		}
-	}
-
-	if (!container->transferObject(newItem, -1, true)) {
-		// Revert original count and cleanup on failure
-		tano->setUseCount(currentCount, true);
-		tano->deleteLuaStringData("skip_junk_stack");
-		if (container->isTangibleObject()) {
-			TangibleObject* containerTano = container->asTangibleObject();
-			if (containerTano != nullptr) {
-				containerTano->deleteLuaStringData("skip_junk_stack");
-			}
-		}
-		newItem->destroyObjectFromDatabase(true);
-		player->sendSystemMessage("Unable to unstack items - inventory full.");
-		return;
-	}
-
-	// Ensure client receives the new object baselines
-	newItem->sendTo(player, true);
-
-	tano->deleteLuaStringData("skip_junk_stack");
-	newTano->deleteLuaStringData("skip_junk_stack");
-	if (container->isTangibleObject()) {
-		TangibleObject* containerTano = container->asTangibleObject();
-		if (containerTano != nullptr) {
-			containerTano->deleteLuaStringData("skip_junk_stack");
-		}
-	}
-
-	player->sendSystemMessage("Unstacked " + String::valueOf(currentCount) + " " + itemName + " into stacks of " + String::valueOf(remainingCount) + " and " + String::valueOf(splitCount) + ".");
 }

@@ -704,7 +704,8 @@ int CreatureManagerImplementation::notifyDestruction(TangibleObject* destructor,
 										ManagedReference<CreatureObject*> groupMember = group->getGroupMember(i);
 										if (groupMember != nullptr && groupMember->isPlayerCreature() && groupMember->isInRange(destructedObject, 32.0f)) {
 											PlayerObject* ghost = groupMember->getPlayerObject();
-											if (ghost != nullptr && ghost->isJedi()) {
+											// Only award FRS XP to players who have achieved Jedi Knight rank (force_title_jedi_rank_03) or higher
+											if (ghost != nullptr && ghost->isJedi() && groupMember->hasSkill("force_title_jedi_rank_03")) {
 												Locker locker(groupMember, destructedObject);
 												frsManager->adjustFrsExperience(groupMember, frsExperience, true);
 											}
@@ -713,7 +714,8 @@ int CreatureManagerImplementation::notifyDestruction(TangibleObject* destructor,
 								}
 							} else {
 								PlayerObject* ghost = player->getPlayerObject();
-								if (ghost != nullptr && ghost->isJedi()) {
+								// Only award FRS XP to players who have achieved Jedi Knight rank (force_title_jedi_rank_03) or higher
+								if (ghost != nullptr && ghost->isJedi() && player->hasSkill("force_title_jedi_rank_03")) {
 									frsManager->adjustFrsExperience(player, frsExperience, true);
 								}
 							}
@@ -749,6 +751,11 @@ int CreatureManagerImplementation::notifyDestruction(TangibleObject* destructor,
 			creatureInventory->setContainerOwnerID(ownerID);
 
 			if (lootManager->createLoot(trx, creatureInventory, destructedObject)) {
+				// Roll an additional lootable DNA sample for Bio-Engineer crafting.
+				Creature* destructedCreature = cast<Creature*>(destructedObject);
+				if (destructedCreature != nullptr) {
+					DnaManager::instance()->tryGenerateLootableSample(destructedCreature, creatureInventory, false, player);
+				}
 				trx.commit(true);
 			} else if (trx.isEnabled() && !trx.isAborted()) {
 				trx.abort() << "createLoot failed for ai object for unknown reason.";
@@ -1286,7 +1293,7 @@ void CreatureManagerImplementation::milk(Creature* creature, CreatureObject* pla
 
 	Reference<MilkCreatureTask*> task = new MilkCreatureTask(creature, player);
 
-	task->schedule(10000);
+	task->schedule(1000);
 }
 
 void CreatureManagerImplementation::sample(Creature* creature, CreatureObject* player) {

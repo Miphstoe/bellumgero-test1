@@ -33,9 +33,21 @@ lok_destroy_missions = {
 			size = 25,
 		},
 		{
+			lairTemplateName = "lok_domesticated_gurnaset_lair_neutral_medium",
+			minDifficulty = 13,
+			maxDifficulty = 17,
+			size = 25,
+		},
+		{
 			lairTemplateName = "lok_langlatch_lair_neutral_medium",
 			minDifficulty = 13,
 			maxDifficulty = 17,
+			size = 25,
+		},
+		{
+			lairTemplateName = "lok_longclaw_wild_vortor_lizard_pack_neutral_none",
+			minDifficulty = 17,
+			maxDifficulty = 23,
 			size = 25,
 		},
 		{
@@ -105,6 +117,12 @@ lok_destroy_missions = {
 			size = 25,
 		},
 		{
+			lairTemplateName = "lok_domesticated_snorbal_lair_neutral_medium",
+			minDifficulty = 28,
+			maxDifficulty = 32,
+			size = 25,
+		},
+		{
 			lairTemplateName = "lok_nym_base_neutral_large_theater",
 			minDifficulty = 29,
 			maxDifficulty = 33,
@@ -150,6 +168,18 @@ lok_destroy_missions = {
 			lairTemplateName = "lok_canyon_corsair_camp2_neutral_medium_theater",
 			minDifficulty = 45,
 			maxDifficulty = 50,
+			size = 25,
+		},
+		{
+			lairTemplateName = "lok_monstrous_mite_lair_neutral_small",
+			minDifficulty = 26,
+			maxDifficulty = 35,
+			size = 25,
+		},
+		{
+			lairTemplateName = "lok_monstrous_kubaza_lair_neutral_medium",
+			minDifficulty = 30,
+			maxDifficulty = 35,
 			size = 25,
 		},
 		{

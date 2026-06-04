@@ -34,7 +34,7 @@ giant_ewok_warchief = Creature:new {
 			groups = {
 				{group = "clothing_attachments", chance = 5000000},
 				{group = "armor_attachments", chance = 2500000},
-				{group = "weapons_all", chance = 2500000}
+				{group = "power_crystals", chance = 2500000}
 			},
 			lootChance = 10000000
 		},
@@ -42,7 +42,7 @@ giant_ewok_warchief = Creature:new {
 			groups = {
 				{group = "clothing_attachments", chance = 5000000},
 				{group = "armor_attachments", chance = 2500000},
-				{group = "weapons_all", chance = 2500000}
+				{group = "power_crystals", chance = 2500000}
 			},
 			lootChance = 10000000
 		},
@@ -50,7 +50,7 @@ giant_ewok_warchief = Creature:new {
 			groups = {
 				{group = "clothing_attachments", chance = 5000000},
 				{group = "armor_attachments", chance = 2500000},
-				{group = "weapons_all", chance = 2500000}
+				{group = "power_crystals", chance = 2500000}
 			},
 			lootChance = 10000000
 		},
@@ -58,7 +58,7 @@ giant_ewok_warchief = Creature:new {
 			groups = {
 				{group = "clothing_attachments", chance = 5000000},
 				{group = "armor_attachments", chance = 2500000},
-				{group = "weapons_all", chance = 2500000}
+				{group = "power_crystals", chance = 2500000}
 			},
 			lootChance = 10000000
 		},
@@ -66,7 +66,7 @@ giant_ewok_warchief = Creature:new {
 			groups = {
 				{group = "clothing_attachments", chance = 5000000},
 				{group = "armor_attachments", chance = 2500000},
-				{group = "weapons_all", chance = 2500000}
+				{group = "power_crystals", chance = 2500000}
 			},
 			lootChance = 10000000
 		}

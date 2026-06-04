@@ -75,6 +75,7 @@
 #include "server/zone/objects/region/CityRegion.h"
 #include "server/zone/managers/director/DirectorManager.h"
 #include "server/zone/objects/player/sui/callbacks/CloningRequestSuiCallback.h"
+#include "server/zone/objects/tangible/components/HeroRingMenuComponent.h"
 #include "server/zone/objects/tangible/tool/CraftingStation.h"
 #include "server/zone/objects/tangible/tool/CraftingTool.h"
 
@@ -1677,6 +1678,11 @@ void PlayerManagerImplementation::sendActivateCloneRequest(CreatureObject* playe
 	if (preDesignatedFacility != nullptr && preDesignatedFacility->getZone() == zone)
 		cloneMenu->addMenuItem("@base_player:revive_bind", preDesignatedFacility->getObjectID());
 
+	WearableObject* heroRing = HeroRingMenuComponent::getEquippedHeroRing(player);
+
+	if (HeroRingMenuComponent::canActivateHeroRing(player, heroRing))
+		cloneMenu->addMenuItem("@quest/hero_of_tatooine/system_messages:menu_restore", heroRing->getObjectID());
+
 	for (int i = 0; i < locations.size(); i++) {
 		ManagedReference<SceneObject*> loc = locations.get(i);
 
@@ -1871,10 +1877,8 @@ void PlayerManagerImplementation::sendPlayerToCloner(CreatureObject* player, uin
 
 	}
 
-	if (ConfigManager::instance()->getBool("Core3.PlayerManager.WipeFillingOnClone", false)) {
-		ghost->setFoodFilling(0);
-		ghost->setDrinkFilling(0);
-	}
+	ghost->setFoodFilling(0);
+	ghost->setDrinkFilling(0);
 
 	Reference<Task*> task = new PlayerIncapacitationRecoverTask(player, true);
 	task->schedule(3 * 1000);
@@ -5088,6 +5092,26 @@ bool PlayerManagerImplementation::promptTeachableSkills(CreatureObject* teacher,
 bool PlayerManagerImplementation::offerTeaching(CreatureObject* teacher, CreatureObject* student, Skill* skill) {
 	ManagedReference<PlayerObject*> studentGhost = student->getPlayerObject();
 
+	// Check if student lacks skill points before sending the offer
+	if (studentGhost != nullptr && studentGhost->getSkillPoints() < skill->getSkillPointsRequired()) {
+		int pointsNeeded = skill->getSkillPointsRequired() - studentGhost->getSkillPoints();
+
+		StringIdManager* sidman = StringIdManager::instance();
+		String sklname = sidman->getStringId(String("@skl_n:" + skill->getSkillName()).hashCode()).toString();
+
+		StringBuffer teacherMsg;
+		teacherMsg << student->getDisplayedName() << " needs " << pointsNeeded
+		           << " more skill point(s) to learn " << sklname << ". They must drop some skills first.";
+		teacher->sendSystemMessage(teacherMsg.toString());
+
+		StringBuffer studentMsg;
+		studentMsg << teacher->getDisplayedName() << " is trying to teach you " << sklname
+		           << " but you need " << pointsNeeded << " more skill point(s). Drop some skills to free up skill points.";
+		student->sendSystemMessage(studentMsg.toString());
+
+		return false;
+	}
+
 	//Do they have an outstanding teaching offer?
 	if (studentGhost->hasSuiBoxWindowType(SuiWindowType::TEACH_OFFER)) {
 		StringIdChatParameter params("teaching", "student_has_offer_to_learn"); //%TT already has an offer to learn.
@@ -5170,6 +5194,14 @@ bool PlayerManagerImplementation::acceptTeachingOffer(CreatureObject* teacher, C
 			awardExperience(teacher, "apprenticeship", exp, false);
 		}
 	} else {
+		// Check if failure is specifically due to insufficient skill points
+		ManagedReference<PlayerObject*> studentGhost = student->getPlayerObject();
+		if (studentGhost != nullptr && studentGhost->getSkillPoints() < skill->getSkillPointsRequired()) {
+			int pointsNeeded = skill->getSkillPointsRequired() - studentGhost->getSkillPoints();
+			StringBuffer msg;
+			msg << "You need " << pointsNeeded << " more skill point(s) to learn this skill. Drop some skills to free up skill points.";
+			student->sendSystemMessage(msg.toString());
+		}
 		student->sendSystemMessage("@teaching:learning_failed"); //Learning failed.
 		teacher->sendSystemMessage("@teaching:teaching_failed"); //Teaching failed.
 		return false;
@@ -5191,7 +5223,7 @@ SortedVector<String> PlayerManagerImplementation::getTeachableSkills(CreatureObj
 
 		const auto& skillName = skill->getSkillName();
 
-		if (!(skillName.contains("force_sensitive") || skillName.contains("force_rank") || skillName.contains("force_title") || skillName.contains("admin_")) && skillManager->canLearnSkill(skillName, student, false))
+		if (!(skillName.contains("force_sensitive") || skillName.contains("force_rank") || skillName.contains("force_title") || skillName.contains("admin_")) && skillManager->canLearnSkill(skillName, student, false, true))
 			skills.put(skillName);
 	}
 
@@ -6519,6 +6551,27 @@ void PlayerManagerImplementation::enhanceCharacter(CreatureObject* player) {
 	message = message && doEnhanceCharacter(0x11C1772E, player, performanceBuff, performanceDuration, BuffType::PERFORMANCE, 6); // performance_enhance_dance_mind
 	message = message && doEnhanceCharacter(0x2E77F586, player, performanceBuff, performanceDuration, BuffType::PERFORMANCE, 7); // performance_enhance_music_focus
 	message = message && doEnhanceCharacter(0x3EC6FCB6, player, performanceBuff, performanceDuration, BuffType::PERFORMANCE, 8); // performance_enhance_music_willpower
+
+	if (message && player->isPlayerCreature())
+		player->sendSystemMessage("An unknown force strengthens you for battles yet to come.");
+}
+
+void PlayerManagerImplementation::enhanceCharacterVendor(CreatureObject* player) {
+	if (player == nullptr)
+		return;
+
+	bool message = true;
+
+	message = message && doEnhanceCharacter(0x98321369, player, 1500, medicalDuration, BuffType::MEDICAL, 0); // medical_enhance_health
+	message = message && doEnhanceCharacter(0x815D85C5, player, 1500, medicalDuration, BuffType::MEDICAL, 1); // medical_enhance_strength
+	message = message && doEnhanceCharacter(0x7F86D2C6, player, 1500, medicalDuration, BuffType::MEDICAL, 2); // medical_enhance_constitution
+	message = message && doEnhanceCharacter(0x4BF616E2, player, 1500, medicalDuration, BuffType::MEDICAL, 3); // medical_enhance_action
+	message = message && doEnhanceCharacter(0x71B5C842, player, 1500, medicalDuration, BuffType::MEDICAL, 4); // medical_enhance_quickness
+	message = message && doEnhanceCharacter(0xED0040D9, player, 1500, medicalDuration, BuffType::MEDICAL, 5); // medical_enhance_stamina
+
+	message = message && doEnhanceCharacter(0x11C1772E, player, 750, performanceDuration, BuffType::PERFORMANCE, 6); // performance_enhance_dance_mind
+	message = message && doEnhanceCharacter(0x2E77F586, player, 750, performanceDuration, BuffType::PERFORMANCE, 7); // performance_enhance_music_focus
+	message = message && doEnhanceCharacter(0x3EC6FCB6, player, 750, performanceDuration, BuffType::PERFORMANCE, 8); // performance_enhance_music_willpower
 
 	if (message && player->isPlayerCreature())
 		player->sendSystemMessage("An unknown force strengthens you for battles yet to come.");

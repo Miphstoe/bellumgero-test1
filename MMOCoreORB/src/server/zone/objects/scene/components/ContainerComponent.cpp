@@ -11,6 +11,7 @@
 #include "server/zone/objects/player/PlayerObject.h"
 #include "server/zone/objects/player/sessions/SlicingSession.h"
 #include "server/zone/objects/tangible/TangibleObject.h"
+#include "server/zone/objects/region/CityRegion.h"
 
 int ContainerComponent::canAddObject(SceneObject* sceneObject, SceneObject* object, int containmentType, String& errorDescription) const {
 	if (sceneObject == object) {
@@ -47,8 +48,21 @@ int ContainerComponent::canAddObject(SceneObject* sceneObject, SceneObject* obje
 			ManagedReference<BuildingObject*> buio = cast<BuildingObject*>( containerBuildingParent.get());
 
 			if (buio != nullptr && (buio->getOwnerObjectID() != objPlayerParent->getObjectID() || buio->isCivicStructure())) {
-				errorDescription = "@container_error_message:container28";
-				return TransferErrorCode::CANTADD;
+				// City mayors are permitted to place items (including noTrade items) inside
+				// civic structures that belong to their city (e.g. decorating the city hall).
+				bool mayorAllowed = false;
+				if (buio->isCivicStructure()) {
+					CreatureObject* creature = dynamic_cast<CreatureObject*>(objPlayerParent.get());
+					if (creature != nullptr) {
+						ManagedReference<CityRegion*> playerCity = creature->getCityRegion().get();
+						mayorAllowed = (playerCity != nullptr && playerCity->isMayor(creature->getObjectID()));
+					}
+				}
+
+				if (!mayorAllowed) {
+					errorDescription = "@container_error_message:container28";
+					return TransferErrorCode::CANTADD;
+				}
 			}
 		}
 
@@ -323,80 +337,6 @@ bool ContainerComponent::transferObject(SceneObject* sceneObject, SceneObject* o
 		// Check for volume limit if overflow is not allowed
 		if (!allowOverflow && containerObjects->size() >= sceneObject->getContainerVolumeLimit()){
 			return false;
-		}
-
-		// Check if this is a stackable junk item
-		if (object->isTangibleObject()) {
-			TangibleObject* tangible = object->asTangibleObject();
-
-			if (tangible != nullptr) {
-				// Allow container to bypass junk stacking (used by manual unstack)
-				bool skipStackContainer = false;
-				if (sceneObject->isTangibleObject()) {
-					TangibleObject* containerTano = sceneObject->asTangibleObject();
-					if (containerTano != nullptr) {
-						String skipStackContainerValue = containerTano->getLuaStringData("skip_junk_stack");
-						skipStackContainer = !skipStackContainerValue.isEmpty();
-					}
-				}
-
-				// Get the template path to identify the item type
-				String templatePath = object->getObjectTemplate()->getFullTemplateString();
-				uint32 templateCRC = object->getServerObjectCRC();
-				int junkValue = tangible->getJunkValue();
-
-				// Only stack items that explicitly have a junk value (from the junk loot group)
-				// Allow callers to bypass auto-stacking (e.g., manual unstack).
-				String skipStackIncoming = tangible->getLuaStringData("skip_junk_stack");
-				if (junkValue > 0 && skipStackIncoming.isEmpty() && !skipStackContainer) {
-					// Exclude locked containers, recording rods, loudspeakers, and specific blacklist items from stacking
-					bool isLockedContainer = templatePath.contains("player_loot_crate");
-					bool isRecordingRod = templatePath.contains("recording_rod");
-					bool isLoudspeaker = templatePath.contains("speaker_s01");
-					bool isEyesOfMesra = templatePath.contains("item_eyes_of_mesra");
-
-					if (!isLockedContainer && !isRecordingRod && !isLoudspeaker && !isEyesOfMesra) {
-						// Search for an existing identical item in the container to stack with
-						for (int i = 0; i < containerObjects->size(); ++i) {
-							SceneObject* existingObj = containerObjects->get(i);
-
-							if (existingObj != nullptr && existingObj->isTangibleObject()) {
-								// Check if templates match by CRC (more reliable than string comparison)
-								if (existingObj->getServerObjectCRC() == templateCRC) {
-									TangibleObject* existingTangible = existingObj->asTangibleObject();
-
-									// If either item requests skipping stack, do not merge
-									if (existingTangible != nullptr) {
-										String skipStackExisting = existingTangible->getLuaStringData("skip_junk_stack");
-										if (!skipStackExisting.isEmpty())
-											continue;
-									}
-
-									// Stack the items by incrementing useCount
-									// If useCount is 0 or 1, treat it as a single item
-									int existingCount = existingTangible->getUseCount();
-									int incomingCount = tangible->getUseCount();
-
-									// Default single items to count of 1 if useCount is 0
-									if (existingCount <= 0) existingCount = 1;
-									if (incomingCount <= 0) incomingCount = 1;
-
-									int newCount = existingCount + incomingCount;
-
-									existingTangible->setUseCount(newCount, true);
-
-									// Destroy the new item since it's been stacked
-									// Only destroy from database since it's not in the world yet
-									object->destroyObjectFromDatabase(true);
-
-									// Stacking successful, return true
-									return true;
-								}
-							}
-						}
-					}
-				}
-			}
 		}
 
 		// Attempt to add the object in the container

@@ -118,7 +118,9 @@ void SurveySessionImplementation::startSurvey(const String& resname) {
 		return;
 	}
 
-	if (!isAll && (spawn->getSurveyToolType() != activeSurveyTool->getToolType() && !(activeSurveyTool->getToolType() == SurveyTool::INORGANIC && spawn->isType("inorganic")))) {
+	if (!isAll && (spawn->getSurveyToolType() != activeSurveyTool->getToolType()
+			&& !(activeSurveyTool->getToolType() == SurveyTool::INORGANIC && spawn->isType("inorganic"))
+			&& !(activeSurveyTool->getToolType() == SurveyTool::CREATURE && spawn->isType("creature_resources")))) {
 		StringIdChatParameter message("@survey:wrong_tool"); // %TO resources cannot be located with this tool
 		message.setTO(spawn->getFinalClass());
 		surveyer->sendSystemMessage(message);
@@ -167,7 +169,13 @@ void SurveySessionImplementation::startSample(const String& resname) {
 		return;
 	}
 
-	// All-tool support: identify “creature” resources to block sampling
+	// Creature survey tool is survey-only — sampling organics is not permitted
+	if (activeSurveyTool->getSurveyType().toLowerCase() == "creature") {
+		surveyer->sendSystemMessage("@error_message:insufficient_skill");
+		return;
+	}
+
+	// All-tool support: identify "creature" resources to block sampling
 	bool isAll = activeSurveyTool->getSurveyType().toLowerCase() == "all";
 	bool isCreature =
 		resourceSpawn->isType("hide")
@@ -213,7 +221,8 @@ void SurveySessionImplementation::startSample(const String& resname) {
 	}
 
 	if ( (!isAll && (resourceSpawn->getSurveyToolType() != activeSurveyTool->getToolType()
-			&& !(activeSurveyTool->getToolType() == SurveyTool::INORGANIC && resourceSpawn->isType("inorganic"))))
+			&& !(activeSurveyTool->getToolType() == SurveyTool::INORGANIC && resourceSpawn->isType("inorganic"))
+			&& !(activeSurveyTool->getToolType() == SurveyTool::CREATURE && resourceSpawn->isType("creature_resources"))))
 	  || ( isAll && isCreature ) ) {
 		StringIdChatParameter message("@survey:wrong_tool"); // %TO resources cannot be located with this tool
 		message.setTO(resourceSpawn->getFinalClass());

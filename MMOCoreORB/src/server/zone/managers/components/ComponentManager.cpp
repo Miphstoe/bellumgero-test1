@@ -20,6 +20,8 @@
 #include "server/zone/objects/tangible/components/vendor/VendorZoneComponent.h"
 #include "server/zone/objects/tangible/components/vendor/VendorMenuComponent.h"
 #include "server/zone/objects/tangible/components/vendor/VendorDataComponent.h"
+#include "server/zone/objects/tangible/components/DoctorBuffDroidMenuComponent.h"
+#include "server/zone/objects/tangible/components/DoctorBuffDroidDataComponent.h"
 #include "server/zone/objects/tangible/terminal/components/SecurityTerminalDataComponent.h"
 #include "server/zone/objects/tangible/terminal/components/GamblingTerminalDataComponent.h"
 #include "server/zone/objects/tangible/terminal/components/TurretControlTerminalDataComponent.h"
@@ -55,6 +57,7 @@
 #include "server/zone/objects/tangible/components/CloningTerminalMenuComponent.h"
 #include "server/zone/objects/tangible/components/HolocronMenuComponent.h"
 #include "server/zone/objects/tangible/components/HolocronDestinyMenuComponent.h"
+#include "server/zone/objects/tangible/components/LockedBriefcaseMenuComponent.h"
 #include "server/zone/objects/tangible/components/WaypointDatapadMenuComponent.h"
 #include "server/zone/objects/tangible/components/ForceCrystalMenuComponent.h"
 #include "server/zone/objects/tangible/components/RobeObjectMenuComponent.h"
@@ -64,6 +67,7 @@
 #include "server/zone/objects/tangible/components/VehicleCustomKitObjectMenuComponent.h"
 #include "server/zone/objects/tangible/components/RentalVehicleObjectMenuComponent.h"
 #include "server/zone/objects/tangible/components/DroidCustomKitObjectMenuComponent.h"
+#include "server/zone/objects/tangible/components/SEAToolObjectMenuComponent.h"
 #include "server/zone/objects/tangible/components/SaberInventoryContainerComponent.h"
 #include "server/zone/objects/tangible/components/generic/LootSchematicAttributeListComponent.h"
 #include "server/zone/objects/tangible/components/generic/XpPurchaseAttributeListComponent.h"
@@ -117,6 +121,7 @@
 #include "server/zone/objects/structure/components/GarageZoneComponent.h"
 #include "server/zone/objects/structure/components/GarageDataComponent.h"
 #include "server/zone/objects/creature/components/TrainerMenuComponent.h"
+#include "server/zone/objects/creature/components/CityFactionTroopMenuComponent.h"
 #include "server/zone/objects/creature/components/SarlaccMenuComponent.h"
 #include "server/zone/objects/creature/components/PetMenuComponent.h"
 #include "server/zone/objects/tangible/components/FireHeavyWeaponMenuComponent.h"
@@ -214,6 +219,7 @@ ComponentManager::ComponentManager() {
 
 	components.put("HolocronMenuComponent", new HolocronMenuComponent());
 	components.put("HolocronDestinyMenuComponent", new HolocronDestinyMenuComponent());
+	components.put("LockedBriefcaseMenuComponent", new LockedBriefcaseMenuComponent());
 	components.put("WaypointDatapadMenuComponent", new WaypointDatapadMenuComponent());
 
 	components.put("AttributeListComponent", new AttributeListComponent());
@@ -254,6 +260,7 @@ ComponentManager::ComponentManager() {
 	components.put("DroidContainerComponent", new DroidContainerComponent());
 	components.put("DroidDatapadContainerComponent", new DroidDatapadContainerComponent());
 	components.put("VendorMenuComponent", new VendorMenuComponent());
+	components.put("DoctorBuffDroidMenuComponent", new DoctorBuffDroidMenuComponent());
 	components.put("VendorZoneComponent", new VendorZoneComponent());
 	components.put("TurretZoneComponent", new TurretZoneComponent());
 	components.put("TurretContainerComponent", new TurretContainerComponent());
@@ -262,6 +269,7 @@ ComponentManager::ComponentManager() {
 	components.put("ScannerZoneComponent", new ScannerZoneComponent());
 
 	dataObjectFactory.registerObject<VendorDataComponent>("VendorDataComponent");
+	dataObjectFactory.registerObject<DoctorBuffDroidDataComponent>("DoctorBuffDroidDataComponent");
 	dataObjectFactory.registerObject<AuctionTerminalDataComponent>("AuctionTerminalDataComponent");
 	dataObjectFactory.registerObject<SecurityTerminalDataComponent>("SecurityTerminalDataComponent");
 	dataObjectFactory.registerObject<GamblingTerminalDataComponent>("GamblingTerminalDataComponent");
@@ -306,12 +314,14 @@ ComponentManager::ComponentManager() {
 	components.put("VehicleCustomKitObjectMenuComponent", new VehicleCustomKitObjectMenuComponent());
 	components.put("RentalVehicleObjectMenuComponent", new RentalVehicleObjectMenuComponent());
 	components.put("DroidCustomKitObjectMenuComponent", new DroidCustomKitObjectMenuComponent());
+	components.put("SEAToolObjectMenuComponent", new SEAToolObjectMenuComponent());
 
 	components.put("FireworkMenuComponent", new FireworkMenuComponent());
 	components.put("FireworkShowMenuComponent", new FireworkShowMenuComponent());
 	dataObjectFactory.registerObject<FireworkShowDataComponent>("FireworkShowDataComponent");
 
 	components.put("TrainerMenuComponent", new TrainerMenuComponent());
+	components.put("CityFactionTroopMenuComponent", new CityFactionTroopMenuComponent());
 	components.put("PetMenuComponent", new PetMenuComponent());
 
 	components.put("FireHeavyWeaponMenuComponent", new FireHeavyWeaponMenuComponent());

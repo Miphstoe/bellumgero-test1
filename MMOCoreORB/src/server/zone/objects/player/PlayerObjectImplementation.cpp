@@ -578,8 +578,7 @@ void PlayerObjectImplementation::notifySceneReady() {
 			}
 		}
 
-		// Create or spawn the helper droid
-		createHelperDroid();
+		// Starter helper droid auto-spawn disabled.
 	}
 
 	// Refresh guild title display after scene is ready to prevent titles from disappearing during zone transfers
@@ -2505,34 +2504,39 @@ void PlayerObjectImplementation::activateForcePowerRegen() {
 		forceRegenerationEvent = new ForceRegenerationEvent(asPlayerObject());
 	}
 
-	if (!forceRegenerationEvent->isScheduled()) {
-		int forceControlMod = 0, forceManipulationMod = 0;
+	// Always recalculate the regen interval so rank-ups take effect immediately.
+	// Bug fix 1: use force_control_dark (not force_power_dark) for dark side regen.
+	int forceControlMod = 0, forceManipulationMod = 0;
 
-		if (creature->hasSkill("force_rank_light_novice")) {
-			forceControlMod = creature->getSkillMod("force_control_light");
-			forceManipulationMod = creature->getSkillMod("force_manipulation_light");
-		} else if (creature->hasSkill("force_rank_dark_novice")) {
-			forceControlMod = creature->getSkillMod("force_power_dark");
-			forceManipulationMod = creature->getSkillMod("force_manipulation_dark");
-		}
-
-		regen += (forceControlMod + forceManipulationMod) / 10.f;
-
-		int regenMultiplier = creature->getSkillMod("private_force_regen_multiplier");
-		int regenDivisor = creature->getSkillMod("private_force_regen_divisor");
-
-		if (regenMultiplier != 0)
-			regen *= regenMultiplier;
-
-		if (regenDivisor != 0)
-			regen /= regenDivisor;
-
-		float timer = regen / 5.f;
-
-		float scheduledTime = 10 / timer;
-		uint64 miliTime = static_cast<uint64>(scheduledTime * 1000.f);
-		forceRegenerationEvent->schedule(miliTime);
+	if (creature->hasSkill("force_rank_light_novice")) {
+		forceControlMod = creature->getSkillMod("force_control_light");
+		forceManipulationMod = creature->getSkillMod("force_manipulation_light");
+	} else if (creature->hasSkill("force_rank_dark_novice")) {
+		forceControlMod = creature->getSkillMod("force_control_dark");
+		forceManipulationMod = creature->getSkillMod("force_manipulation_dark");
 	}
+
+	regen += (forceControlMod + forceManipulationMod) / 10.f;
+
+	int regenMultiplier = creature->getSkillMod("private_force_regen_multiplier");
+	int regenDivisor = creature->getSkillMod("private_force_regen_divisor");
+
+	if (regenMultiplier != 0)
+		regen *= regenMultiplier;
+
+	if (regenDivisor != 0)
+		regen /= regenDivisor;
+
+	float timer = regen / 5.f;
+
+	float scheduledTime = 10 / timer;
+	uint64 miliTime = static_cast<uint64>(scheduledTime * 1000.f);
+
+	// Cancel any already-running event so the new interval takes effect immediately.
+	if (forceRegenerationEvent->isScheduled())
+		forceRegenerationEvent->cancel();
+
+	forceRegenerationEvent->schedule(miliTime);
 }
 
 void PlayerObjectImplementation::setLinkDead(bool isSafeLogout) {
@@ -3140,47 +3144,34 @@ void PlayerObjectImplementation::deleteAllWaypoints() {
 	}
 }
 
+int PlayerObjectImplementation::getLotsUsed() {
+	StructureManager* structureManager = StructureManager::instance();
+
+	if (structureManager == nullptr)
+		return 0;
+
+	CreatureObject* creature = dynamic_cast<CreatureObject*>(parent.get().get());
+
+	if (creature != nullptr)
+		return structureManager->getAccountLotsUsed(creature);
+
+	uint32 accountId = 0;
+
+	{
+		Locker locker(asPlayerObject());
+		accountId = getAccountID();
+	}
+
+	return structureManager->getAccountLotsUsed(accountId);
+}
+
 int PlayerObjectImplementation::getLotsRemaining() {
-    Locker locker(asPlayerObject());
+	StructureManager* structureManager = StructureManager::instance();
 
-    int lotsRemaining = maximumLots;
+	if (structureManager == nullptr)
+		return 0;
 
-    // Subtract lots consumed by placed structures
-    for (int i = 0; i < ownedStructures.size(); ++i) {
-        auto oid = ownedStructures.get(i);
-        Reference<StructureObject*> structure = getZoneServer()->getObject(oid).castTo<StructureObject*>();
-        if (structure != nullptr) {
-            lotsRemaining = lotsRemaining - structure->getLotSize();
-        }
-    }
-
-    /* COMMENTED OUT - Let Core3 handle lots normally
-    // Subtract lots consumed by packed deeds in inventory
-    CreatureObject* creature = dynamic_cast<CreatureObject*>(parent.get().get());
-    if (creature != nullptr) {
-        SceneObject* inventory = creature->getSlottedObject("inventory");
-        if (inventory != nullptr) {
-            for (int i = 0; i < inventory->getContainerObjectsSize(); ++i) {
-                SceneObject* item = inventory->getContainerObject(i);
-                if (item != nullptr && item->isDeedObject()) {
-                    if (HousePackupManager::instance()->hasSavedPayloadForDeed(item->getObjectID())) {
-                        StructureDeed* deed = cast<StructureDeed*>(item);
-                        if (deed != nullptr) {
-                            String templatePath = deed->getGeneratedObjectTemplate();
-                            Reference<SharedStructureObjectTemplate*> tmpl = dynamic_cast<SharedStructureObjectTemplate*>(
-                                TemplateManager::instance()->getTemplate(templatePath.hashCode()));
-                            if (tmpl != nullptr) {
-                                lotsRemaining -= tmpl->getLotSize();
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
-
-    return lotsRemaining;
+	return structureManager->getAccountLotCap() - getLotsUsed();
 }
 
 int PlayerObjectImplementation::getOwnedChatRoomCount() {
@@ -3872,6 +3863,9 @@ String PlayerObjectImplementation::getPlayedTimeString(bool verbose) const {
 }
 
 void PlayerObjectImplementation::createHelperDroid() {
+	// Starter helper droid auto-spawn disabled for all players.
+	return;
+
 	// Only spawn droid if character is less than 1 days old
 	if (getCharacterAgeInDays() >= 1 || isPrivileged())
 		return;

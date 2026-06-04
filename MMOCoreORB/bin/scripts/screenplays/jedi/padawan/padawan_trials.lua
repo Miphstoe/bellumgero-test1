@@ -447,6 +447,10 @@ function PadawanTrials:notifyKilledForPoints(pPlayer, pVictim)
 		return 0
 	end
 
+	-- Player must be within 32m of the kill to receive credit
+	if not SceneObject(pPlayer):isInRangeWithObject(pVictim, 32) then
+		return 0
+	end
 
 	-- Get creature level and calculate points
 	local creatureLevel = CreatureObject(pVictim):getLevel()
@@ -609,17 +613,8 @@ function PadawanTrials:tryCompletePadawanForCredits(pPlayer, amount)
 		creature:subtractBankCredits(bankDeducted)
 	end
 
-	-- Unlock Padawan
+	-- Unlock Padawan (this will give both robes if inventory has space)
 	JediTrials:unlockJediPadawan(pPlayer)
-
-	-- Give robes
-	local inventory = creature:getSlottedObject("inventory")
-	local faction = creature:getFaction()
-	local robeTemplate = faction == FACTIONREBEL and PADAWAN_ROBE_LIGHT or PADAWAN_ROBE_DARK
-
-	if inventory ~= nil then
-		giveItem(inventory, robeTemplate, -1)
-	end
 
 	-- Send confirmation
 	local sui = SuiMessageBox.new("JediTrials", "emptyCallback")
@@ -632,7 +627,7 @@ function PadawanTrials:tryCompletePadawanForCredits(pPlayer, amount)
 	else
 		confirmMsg = confirmMsg .. "\n  (From Bank)"
 	end
-	confirmMsg = confirmMsg .. "\n\nYou have been granted the rank of Jedi Padawan!\n\nYour robes have been placed in your inventory.\n\nMay the Force be with you."
+	confirmMsg = confirmMsg .. "\n\nYou have been granted the rank of Jedi Padawan!\n\nYour Padawan Robes will be placed in your inventory if you have sufficient space.\n\nMay the Force be with you."
 	sui.setPrompt(confirmMsg)
 	sui.setOkButtonText("@jedi_trials:button_close")
 	sui.sendTo(pPlayer)
